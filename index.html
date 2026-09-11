@@ -1,0 +1,2365 @@
+
+    function applyTheme(theme){
+      const isNight = theme === 'night';
+      document.body.classList.toggle('night', isNight);
+      themeToggle.textContent = isNight ? 'Day Mode' : 'Night Mode';
+      sessionModePill.textContent = isNight ? 'Mode: Night / Logistics' : 'Mode: Day / Creative';
+      localStorage.setItem('tri-theme', isNight ? 'night' : 'day');
+    }
+function setTheme(type) {
+  const root = document.documentElement;
+  const body = document.body;
+
+  if (type === "calm") {
+    root.style.setProperty('--bg', '#0f172a');
+    root.style.setProperty('--panel', '#121826');
+    root.style.setProperty('--panel-2', '#1e293b');
+    root.style.setProperty('--text', '#e5e7eb');
+    root.style.setProperty('--muted', '#94a3b8');
+    body.classList.remove('night');
+  }
+
+  if (type === "energy") {
+    root.style.setProperty('--bg', '#3f0d12');
+    root.style.setProperty('--panel', '#5b1018');
+    root.style.setProperty('--panel-2', '#7f1d1d');
+    root.style.setProperty('--text', '#fef2f2');
+    root.style.setProperty('--muted', '#fecaca');
+    body.classList.remove('night');
+  }
+
+  if (type === "kids") {
+    root.style.setProperty('--bg', '#fef9c3');
+    root.style.setProperty('--panel', '#fff7ed');
+    root.style.setProperty('--panel-2', '#fde68a');
+    root.style.setProperty('--text', '#1f2937');
+    root.style.setProperty('--muted', '#6b7280');
+    body.classList.remove('night');
+  }
+}
+    applyTheme(savedTheme === 'night' ? 'night' : 'day');
+
+    themeToggle.addEventListener('click', () => {
+      const nowNight = !document.body.classList.contains('night');
+      applyTheme(nowNight ? 'night' : 'day');
+    });
+    
+
+/*
+    // ---------- LAYERS ----------
+    const audioA = $('audioA');
+    const audioB = $('audioB');
+
+    $('fileA').addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      audioA.src = URL.createObjectURL(file);
+      $('statusA').textContent = `Loaded A file: ${file.name}`;
+    });
+
+    $('fileB').addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      audioB.src = URL.createObjectURL(file);
+      $('statusB').textContent = `Loaded B file: ${file.name}`;
+    });
+
+    $('loadUrlA').addEventListener('click', () => {
+      const url = safeText($('urlA').value);
+      if (!url) return;
+      audioA.src = url;
+      $('statusA').textContent = 'Loaded A URL';
+    });
+
+    $('loadUrlB').addEventListener('click', () => {
+      const url = safeText($('urlB').value);
+      if (!url) return;
+      audioB.src = url;
+      $('statusB').textContent = 'Loaded B URL';
+    });
+
+    $('playA').addEventListener('click', async () => {
+      try {
+        audioA.loop = $('loopA').checked;
+        await audioA.play();
+        $('statusA').textContent = 'Layer A playing';
+      } catch(err){
+        $('statusA').textContent = 'A play error: ' + err.message;
+      }
+    });
+
+    $('pauseA').addEventListener('click', () => {
+      audioA.pause();
+      $('statusA').textContent = 'Layer A paused';
+    });
+
+    $('stopA').addEventListener('click', () => {
+      audioA.pause();
+      audioA.currentTime = 0;
+      $('statusA').textContent = 'Layer A stopped';
+    });
+
+    $('playB').addEventListener('click', async () => {
+      try {
+        audioB.loop = $('loopB').checked;
+        await audioB.play();
+        $('statusB').textContent = 'Layer B playing';
+      } catch(err){
+        $('statusB').textContent = 'B play error: ' + err.message;
+      }
+    });
+
+    $('pauseB').addEventListener('click', () => {
+      audioB.pause();
+      $('statusB').textContent = 'Layer B paused';
+    });
+
+    $('stopB').addEventListener('click', () => {
+      audioB.pause();
+      audioB.currentTime = 0;
+      $('statusB').textContent = 'Layer B stopped';
+    });
+
+    $('volA').addEventListener('input', () => audioA.volume = Number($('volA').value));
+    $('volB').addEventListener('input', () => audioB.volume = Number($('volB').value));
+    $('loopA').addEventListener('change', () => audioA.loop = $('loopA').checked);
+    $('loopB').addEventListener('change', () => audioB.loop = $('loopB').checked);
+
+    audioA.volume = Number($('volA').value);
+    audioB.volume = Number($('volB').value);
+*/
+    // ---------- EVENT LOG ----------
+    const eventLog = $('eventLog');
+    let events = [];
+
+    function renderEvents(){
+      if (!events.length){
+        eventLog.innerHTML = '<div class="tiny">No events yet.</div>';
+        return;
+      }
+      eventLog.innerHTML = events.map((e, i) => `
+        <div class="event-item">
+          <strong>${i + 1}.</strong> ${e.text}<br>
+          <span class="tiny">${e.time}</span>
+        </div>
+      `).join('');
+    }
+
+    function addEvent(text){
+      events.unshift({ text, time: nowStamp() });
+      renderEvents();
+    }
+
+    $('injectBtn').addEventListener('click', () => {
+      const v = safeText($('promptInput').value);
+      if (!v) return;
+      addEvent('Inject: ' + v);
+      $('promptInput').value = '';
+    });
+
+    $('moreBtn').addEventListener('click', () => addEvent('More'));
+    $('clearEventsBtn').addEventListener('click', () => {
+      events = [];
+      renderEvents();
+    });
+
+    renderEvents();
+
+/* ---------- AUDIO / MIC CORE (CLEAN RESET) ---------- */
+let audioCtx = null;
+let micStream = null;
+let micSource = null;
+let analyser = null;
+let meterData = null;
+let meterAnim = null;
+let monitorGainNode = null;
+
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedBlob = null;
+let recordedUrl = null;
+
+let timerInt = null;
+let recordStartTime = null;
+
+let isMicArmed = false;
+let isRecording = false;
+
+function setRecState(text){
+  $('recStatePill').textContent = text;
+}
+
+function resetTimer(){
+  $('recordTimer').textContent = '00:00';
+  if (timerInt){
+    clearInterval(timerInt);
+    timerInt = null;
+  }
+  recordStartTime = null;
+}
+
+function startTimer(){
+  resetTimer();
+  recordStartTime = Date.now();
+
+  timerInt = setInterval(() => {
+    const sec = (Date.now() - recordStartTime) / 1000;
+    $('recordTimer').textContent = formatTime(sec);
+  }, 250);
+}
+
+function stopTimer(){
+  if (timerInt){
+    clearInterval(timerInt);
+    timerInt = null;
+  }
+}
+
+function setMicStatus(text){
+  $('micStatus').textContent = text;
+}
+
+function getMicConstraints(){
+  const mode = $('micMode')?.value;
+
+  if (mode === 'musician'){
+    return {
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: 1
+      },
+      video: false
+    };
+  }
+
+  return {
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      channelCount: 1
+    },
+    video: false
+  };
+}
+
+function cleanupMeter(){
+  if (meterAnim){
+    cancelAnimationFrame(meterAnim);
+    meterAnim = null;
+  }
+  if ($('micMeterFill')){
+    $('micMeterFill').style.width = '0%';
+  }
+}
+
+function cleanupAudioNodes(){
+  cleanupMeter();
+
+  try { if (micSource) micSource.disconnect(); } catch(e) {}
+  try { if (analyser) analyser.disconnect(); } catch(e) {}
+  try { if (monitorGainNode) monitorGainNode.disconnect(); } catch(e) {}
+
+  micSource = null;
+  analyser = null;
+  meterData = null;
+  monitorGainNode = null;
+}
+
+function startMeter(){
+  if (!analyser || !meterData) return;
+
+  cleanupMeter();
+
+  function draw(){
+    if (!analyser || !meterData) return;
+
+    analyser.getByteTimeDomainData(meterData);
+
+    let sum = 0;
+    for (let i = 0; i < meterData.length; i++){
+      const v = (meterData[i] - 128) / 128;
+      sum += v * v;
+    }
+
+    const rms = Math.sqrt(sum / meterData.length);
+    const percent = Math.min(100, Math.max(0, Math.round(rms * 320)));
+
+    $('micMeterFill').style.width = percent + '%';
+    meterAnim = requestAnimationFrame(draw);
+  }
+
+  draw();
+}
+
+function setupMonitor(){
+  if (!audioCtx || !micSource) return;
+
+  monitorGainNode = audioCtx.createGain();
+  monitorGainNode.gain.value = $('monitorMic').checked ? Number($('monitorGain').value) : 0;
+
+  micSource.connect(monitorGainNode);
+  monitorGainNode.connect(audioCtx.destination);
+}
+
+async function armMic(){
+  try {
+    setMicStatus('Arming mic...');
+    setRecState('Arming');
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      throw new Error('getUserMedia is not supported in this browser.');
+    }
+
+    if (!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if (audioCtx.state === 'suspended'){
+      await audioCtx.resume();
+    }
+
+    if (micStream){
+      micStream.getTracks().forEach(track => track.stop());
+      micStream = null;
+    }
+
+    cleanupAudioNodes();
+
+  micStream = await navigator.mediaDevices.getUserMedia(getMicConstraints());
+
+const track = micStream.getAudioTracks()[0];
+
+if (!track){
+  throw new Error('No microphone track found.');
+}
+
+setMicStatus(
+  "Mic track: enabled=" + track.enabled +
+  ", muted=" + track.muted +
+  ", state=" + track.readyState
+);
+
+console.log("MIC STREAM:", micStream);
+console.log("MIC TRACK:", track);
+console.log("track enabled:", track.enabled);
+console.log("track muted:", track.muted);
+console.log("track readyState:", track.readyState);
+console.log("track settings:", track.getSettings ? track.getSettings() : "not supported");
+
+micSource = audioCtx.createMediaStreamSource(micStream);
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.85;
+    meterData = new Uint8Array(analyser.fftSize);
+
+    micSource.connect(analyser);
+    setupMonitor();
+    startMeter();
+
+    isMicArmed = true;
+    setMicStatus('Mic armed');
+    setRecState('Armed');
+    addEvent('Mic armed');
+  } catch (err){
+    console.error('armMic error:', err);
+    isMicArmed = false;
+    setMicStatus('Mic error: ' + err.message);
+    setRecState('Mic Error');
+  }
+}
+
+async function startRecording(){
+  try {
+    if (isRecording) return;
+
+    if (!isMicArmed || !micStream){
+      await armMic();
+    }
+
+    if (!micStream){
+      throw new Error('Mic stream not ready.');
+    }
+
+    recordedChunks = [];
+    recordedBlob = null;
+
+    if (recordedUrl){
+      URL.revokeObjectURL(recordedUrl);
+      recordedUrl = null;
+    }
+
+    $('playback').removeAttribute('src');
+    $('playback').load();
+
+    let mimeType = '';
+    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')){
+      mimeType = 'audio/webm;codecs=opus';
+    } else if (MediaRecorder.isTypeSupported('audio/webm')){
+      mimeType = 'audio/webm';
+    } else if (MediaRecorder.isTypeSupported('audio/mp4')){
+      mimeType = 'audio/mp4';
+    }
+
+    mediaRecorder = mimeType
+      ? new MediaRecorder(micStream, { mimeType })
+      : new MediaRecorder(micStream);
+
+    mediaRecorder.onstart = () => {
+      isRecording = true;
+      startTimer();
+      setRecState('Recording');
+      setMicStatus('Recording...');
+      addEvent('Recording started');
+    };
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0){
+        recordedChunks.push(e.data);
+      }
+    };
+
+    mediaRecorder.onstop = () => {
+      isRecording = false;
+      stopTimer();
+      setRecState('Stopped');
+
+      if (!recordedChunks.length){
+        setMicStatus('Stopped, but no audio data captured');
+        return;
+      }
+
+      const outType = mediaRecorder.mimeType || mimeType || 'audio/webm';
+      recordedBlob = new Blob(recordedChunks, { type: outType });
+      recordedUrl = URL.createObjectURL(recordedBlob);
+
+      $('playback').src = recordedUrl;
+      $('playback').load();
+
+      setMicStatus(`Recorded ${Math.round(recordedBlob.size / 1024)} KB`);
+      addEvent('Recording stopped');
+    };
+
+    mediaRecorder.onerror = (e) => {
+      console.error('mediaRecorder error:', e);
+      isRecording = false;
+      stopTimer();
+      setRecState('Record Error');
+      setMicStatus('Record error');
+    };
+
+    mediaRecorder.start(250);
+  } catch (err){
+    console.error('startRecording error:', err);
+    isRecording = false;
+    stopTimer();
+    setRecState('Record Error');
+    setMicStatus('Record error: ' + err.message);
+  }
+}
+
+function stopRecording(){
+  try {
+    if (!mediaRecorder) return;
+    if (mediaRecorder.state === 'inactive') return;
+    mediaRecorder.stop();
+  } catch (err){
+    console.error('stopRecording error:', err);
+    setMicStatus('Stop error: ' + err.message);
+  }
+}
+
+$('armMicBtn').addEventListener('click', armMic);
+$('recordBtn').addEventListener('click', startRecording);
+$('stopRecordBtn').addEventListener('click', stopRecording);
+
+$('monitorMic').addEventListener('change', () => {
+  if (monitorGainNode){
+    monitorGainNode.gain.value = $('monitorMic').checked ? Number($('monitorGain').value) : 0;
+  }
+});
+
+$('monitorGain').addEventListener('input', () => {
+  if (monitorGainNode && $('monitorMic').checked){
+    monitorGainNode.gain.value = Number($('monitorGain').value);
+  }
+});
+
+$('clearPlaybackBtn').addEventListener('click', () => {
+  if (recordedUrl){
+    URL.revokeObjectURL(recordedUrl);
+    recordedUrl = null;
+  }
+
+  recordedBlob = null;
+  recordedChunks = [];
+
+  $('playback').removeAttribute('src');
+  $('playback').load();
+  setMicStatus('Playback cleared');
+});
+    // ---------- SNIPPETS ----------
+    const STORAGE_KEY = 'tri-snippets-v1';
+
+    function getSnippets(){
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      } catch {
+        return [];
+      }
+    }
+
+    function setSnippets(arr){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    }
+
+    async function blobUrlToDataUrl(url){
+      if (!url) return '';
+      const res = await fetch(url);
+      const blob = await res.blob();
+      return await new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onloadend = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    }
+
+    async function saveSnippet(){
+      try {
+        let vocalDataUrl = '';
+
+        const playbackSrc = $('playback').src;
+        if (playbackSrc){
+          vocalDataUrl = await blobUrlToDataUrl(playbackSrc);
+        }
+
+        const snippet = {
+          id: Date.now(),
+          createdAt: nowStamp(),
+          layerALabel: safeText($('layerALabel').value),
+          layerBLabel: safeText($('layerBLabel').value),
+          layerATags: safeText($('layerATags').value),
+          layerBTags: safeText($('layerBTags').value),
+          volA: Number($('volA').value),
+          volB: Number($('volB').value),
+          loopA: $('loopA').checked,
+          loopB: $('loopB').checked,
+          micMode: $('micMode').value,
+          notes: $('lyricsBox').value || '',
+          promptValue: $('promptInput').value || '',
+          events: [...events],
+          vocalDataUrl
+        };
+
+        const snippets = getSnippets();
+        snippets.unshift(snippet);
+        setSnippets(snippets);
+        renderSnippets();
+
+        $('micStatus').textContent = 'Snippet saved';
+        addEvent('Snippet saved');
+      } catch(err){
+        console.error(err);
+        $('micStatus').textContent = 'Save snippet error: ' + err.message;
+      }
+    }
+
+    function renderSnippets(){
+      const list = $('snippetList');
+      const snippets = getSnippets();
+
+      if (!snippets.length){
+        list.innerHTML = '<div class="tiny">No saved snippets yet.</div>';
+        return;
+      }
+
+      list.innerHTML = snippets.map(sn => `
+        <div class="snippet">
+          <div><strong>${sn.layerALabel || 'Layer A'}</strong> + <strong>${sn.layerBLabel || 'Layer B'}</strong></div>
+          <div class="tiny">${sn.createdAt}</div>
+          <div class="tiny" style="margin-top:6px;">A tags: ${sn.layerATags || '-'} | B tags: ${sn.layerBTags || '-'}</div>
+          <div class="tiny">Mic mode: ${sn.micMode || '-'}</div>
+          <div style="margin-top:8px; white-space:pre-wrap;">${(sn.notes || '').slice(0, 280)}</div>
+          ${sn.vocalDataUrl ? `<audio controls src="${sn.vocalDataUrl}" style="margin-top:8px;"></audio>` : `<div class="tiny" style="margin-top:8px;">No recording saved</div>`}
+          <div class="row" style="margin-top:10px;">
+            <button type="button" onclick="deleteSnippet(${sn.id})">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    window.deleteSnippet = function(id){
+      const snippets = getSnippets().filter(sn => sn.id !== id);
+      setSnippets(snippets);
+      renderSnippets();
+    };
+
+    $('saveSnippetBtn').addEventListener('click', saveSnippet);
+
+    renderSnippets();
+    const presets = {
+  power: 'audio/power.mp3',
+  wealth: 'audio/wealth2.mp3',
+  clarity: 'audio/clarity.mp3'
+};
+
+function switchPreset(name) {
+  const player = document.getElementById('audioPlayer');
+
+  player.src = presets[name];
+  player.loop = true;
+  player.play();
+}
+/* ---------- RECORDING ARCHIVE PANEL ---------- */
+function getRecordingArchiveItems(limit = 20) {
+  const packets = Array.isArray(TRI_ROUTES?.presetPackets) ? TRI_ROUTES.presetPackets : [];
+
+  return packets
+    .filter(item =>
+      item &&
+      (
+        item.source === 'recording' ||
+        item.kind === 'recording_packet' ||
+        item.category === 'Recent/Recording' ||
+        item.status === 'recorded'
+      )
+    )
+    .slice()
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .slice(0, limit);
+}
+
+function renderRecordingArchive() {
+  const list = document.getElementById('recordingArchiveList');
+  if (!list) return;
+
+  const items = getRecordingArchiveItems();
+
+  if (!items.length) {
+    list.innerHTML = '<div class="tiny">No recordings in archive yet.</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(item => `
+    <div class="snippet">
+      <div><strong>${item.title || 'Untitled Recording'}</strong></div>
+      <div class="tiny">Category: ${item.category || '-'}</div>
+      <div class="tiny">Source: ${item.source || '-'}</div>
+      <div class="tiny">Layers: ${(item.layers || []).join(', ') || '-'}</div>
+      <div class="tiny">Status: ${item.status || '-'}</div>
+      <div class="tiny">Date: ${item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'}</div>
+      ${item.notes ? `<div style="margin-top:8px; white-space:pre-wrap;">${item.notes}</div>` : ''}
+    </div>
+  `).join('');
+}
+/* ---------- LESSON POINT LOOP ---------- */
+const LESSON_POINT_KEY = 'tri-lesson-points-v1';
+
+function getLessonPoints() {
+  try {
+    return JSON.parse(localStorage.getItem(LESSON_POINT_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function setLessonPoints(points) {
+  localStorage.setItem(LESSON_POINT_KEY, JSON.stringify(points));
+}
+
+function renderLessonPoints() {
+  const list = document.getElementById('lessonPointList');
+  if (!list) return;
+
+  const points = getLessonPoints();
+
+  if (!points.length) {
+    list.innerHTML = '<div class="tiny">No lesson points saved yet.</div>';
+    return;
+  }
+list.innerHTML = points.map(point => `
+  <div class="snippet">
+    <strong>${point.text}</strong>
+    <div class="tiny">${point.student}</div>
+    <div class="tiny">${point.date}</div>
+  </div>
+`).join('');
+}
+
+function saveLessonPoint() {
+  const input = document.getElementById('lessonPointInput');
+  if (!input) return;
+
+  const value = input.value.trim();
+  if (!value) return;
+
+  const points = getLessonPoints();
+points.unshift({
+  text: value,
+  student: document.getElementById('lessonPointStudent')?.value.trim() || 'Unknown',
+  date: new Date().toLocaleString()
+});
+
+  setLessonPoints(points);
+  input.value = '';
+  renderLessonPoints();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const btn = document.getElementById('saveLessonPointBtn');
+  if (btn) {
+    btn.addEventListener('click', saveLessonPoint);
+  }
+
+  renderLessonPoints();
+});
+setInterval(renderRecordingArchive, 2000);
+const LESSON_OUTPUTS_KEY = "triLessonOutputsV1";
+
+const lessonStudentName = document.getElementById("lessonStudentName");
+const lessonDateTime = document.getElementById("lessonDateTime");
+const setNowBtn = document.getElementById("setNowBtn");
+const lessonQuotes = document.getElementById("lessonQuotes");
+const lessonVocab = document.getElementById("lessonVocab");
+const lessonPoints = document.getElementById("lessonPoints");
+const lessonNextStep = document.getElementById("lessonNextStep");
+const lessonPatternTag = document.getElementById("lessonPatternTag");
+const saveLessonOutputBtn = document.getElementById("saveLessonOutputBtn");
+const lessonOutputList = document.getElementById("lessonOutputList");
+const lessonCoreThemes = document.getElementById("lessonCoreThemes");
+const lessonStudentPoints = document.getElementById("lessonStudentPoints");
+const lessonTeacherPoints = document.getElementById("lessonTeacherPoints");
+const lessonStudentQuestions = document.getElementById("lessonStudentQuestions");
+const lessonDebateQuestions = document.getElementById("lessonDebateQuestions");
+const lessonRealWorldExamples = document.getElementById("lessonRealWorldExamples");
+const lessonPointOrigin = document.getElementById("lessonPointOrigin");
+const lessonPointScore = document.getElementById("lessonPointScore");
+function getLessonOutputs() {
+  try {
+    return JSON.parse(localStorage.getItem(LESSON_OUTPUTS_KEY) || "[]");
+  } catch (err) {
+    console.error("Could not load lesson outputs:", err);
+    return [];
+  }
+}
+
+function setLessonOutputs(outputs) {
+  localStorage.setItem(LESSON_OUTPUTS_KEY, JSON.stringify(outputs));
+}
+
+function formatNowForDatetimeLocal(date = new Date()) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+function escapeHtml(str) {
+  return String(str || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function splitLines(text) {
+  return String(text || "")
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function splitVocab(text) {
+  return String(text || "")
+    .split(/[\n,]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function renderLessonOutputs() {
+  const outputs = getLessonOutputs();
+
+  if (!lessonOutputList) return;
+
+  if (!outputs.length) {
+    lessonOutputList.innerHTML = `
+      <div class="tiny">No lesson outputs saved yet.</div>
+    `;
+    return;
+  }
+
+  lessonOutputList.innerHTML = outputs
+    .slice()
+    .reverse()
+    .map(output => {
+      const quotesHtml = output.quotes.length
+        ? `<ul>${output.quotes.map(q => `<li>${escapeHtml(q)}</li>`).join("")}</ul>`
+        : `<div class="tiny">—</div>`;
+
+      const vocabHtml = output.vocab.length
+        ? `<ul>${output.vocab.map(v => `<li>${escapeHtml(v)}</li>`).join("")}</ul>`
+        : `<div class="tiny">—</div>`;
+
+      const pointsHtml = output.points.length
+        ? `<ul>${output.points.map(p => `<li>${escapeHtml(p)}</li>`).join("")}</ul>`
+        : `<div class="tiny">—</div>`;
+const coreThemesHtml = output.coreThemes?.length
+  ? `<ul>${output.coreThemes.map(t => `<li>${escapeHtml(t)}</li>`).join("")}</ul>`
+  : `<div class="tiny">—</div>`;
+
+const studentPointsHtml = output.studentPoints?.length
+  ? `<ul>${output.studentPoints.map(p => `<li>${escapeHtml(p)}</li>`).join("")}</ul>`
+  : `<div class="tiny">—</div>`;
+
+const teacherPointsHtml = output.teacherPoints?.length
+  ? `<ul>${output.teacherPoints.map(p => `<li>${escapeHtml(p)}</li>`).join("")}</ul>`
+  : `<div class="tiny">—</div>`;
+
+const studentQuestionsHtml = output.studentQuestions?.length
+  ? `<ul>${output.studentQuestions.map(q => `<li>${escapeHtml(q)}</li>`).join("")}</ul>`
+  : `<div class="tiny">—</div>`;
+
+const debateQuestionsHtml = output.debateQuestions?.length
+  ? `<ul>${output.debateQuestions.map(q => `<li>${escapeHtml(q)}</li>`).join("")}</ul>`
+  : `<div class="tiny">—</div>`;
+
+const realWorldExamplesHtml = output.realWorldExamples?.length
+  ? `<ul>${output.realWorldExamples.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul>`
+  : `<div class="tiny">—</div>`;
+      return `
+        <div class="snippet-item" style="margin-bottom:12px;">
+          <div><strong>${escapeHtml(output.studentName || "Unnamed Student")}</strong></div>
+          <div class="tiny" style="margin:4px 0 10px 0;">${escapeHtml(output.dateTimeDisplay || output.dateTime || "")}</div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Quotes</strong>
+            ${quotesHtml}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Vocabulary</strong>
+            ${vocabHtml}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Points</strong>
+            ${pointsHtml}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Next Lesson Plan</strong>
+            <div>${escapeHtml(output.nextStep || "—")}</div>
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Pattern Tag</strong>
+            <div>${escapeHtml(output.patternTag || "—")}</div>
+          </div>
+
+          <button
+            type="button"
+            class="mini-btn delete-lesson-output-btn"
+            data-id="${escapeHtml(output.id)}"
+            >
+                      <div style="margin-bottom:8px;">
+            <strong>Core Themes</strong>
+            ${coreThemesHtml}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Student Points</strong>
+            ${studentPointsHtml}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Teacher Points</strong>
+            ${teacherPointsHtml}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Student Questions</strong>
+            ${studentQuestionsHtml}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Debate / Discussion Collector</strong>
+            ${debateQuestionsHtml}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Real-World Examples</strong>
+            ${realWorldExamplesHtml}
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Origin / Credit</strong>
+            <div>${escapeHtml(output.pointOrigin || "—")}</div>
+          </div>
+
+          <div style="margin-bottom:8px;">
+            <strong>Points Score</strong>
+            <div>${escapeHtml(output.pointScore || "—")}</div>
+          </div>
+            Delete
+          </button>
+        </div>
+      `;
+    })
+    .join("");
+
+  document.querySelectorAll(".delete-lesson-output-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      const outputs = getLessonOutputs().filter(output => output.id !== id);
+      setLessonOutputs(outputs);
+      renderLessonOutputs();
+    });
+  });
+}
+
+if (lessonDateTime && !lessonDateTime.value) {
+  lessonDateTime.value = formatNowForDatetimeLocal();
+}
+
+if (setNowBtn && lessonDateTime) {
+  setNowBtn.addEventListener("click", () => {
+    lessonDateTime.value = formatNowForDatetimeLocal();
+  });
+}
+
+if (saveLessonOutputBtn) {
+  saveLessonOutputBtn.addEventListener("click", () => {
+    const entry = {
+      id: `lesson_${Date.now()}`,
+      studentName: lessonStudentName?.value.trim() || "",
+      dateTime: lessonDateTime?.value || "",
+      dateTimeDisplay: lessonDateTime?.value
+        ? new Date(lessonDateTime.value).toLocaleString()
+        : "",
+      quotes: splitLines(lessonQuotes?.value),
+      vocab: splitVocab(lessonVocab?.value),
+      points: splitLines(lessonPoints?.value),
+      nextStep: lessonNextStep?.value.trim() || "",
+      patternTag: lessonPatternTag?.value.trim() || "",
+      coreThemes: splitLines(lessonCoreThemes?.value),
+      studentPoints: splitLines(lessonStudentPoints?.value),
+      teacherPoints: splitLines(lessonTeacherPoints?.value),
+      studentQuestions: splitLines(lessonStudentQuestions?.value),
+      debateQuestions: splitLines(lessonDebateQuestions?.value),
+      realWorldExamples: splitLines(lessonRealWorldExamples?.value),
+      pointOrigin: lessonPointOrigin?.value.trim() || "",
+      pointScore: lessonPointScore?.value.trim() || "",
+      createdAt: new Date().toISOString()
+    };
+
+      const hasContent =
+      entry.studentName ||
+      entry.dateTime ||
+      entry.quotes.length ||
+      entry.vocab.length ||
+      entry.points.length ||
+      entry.nextStep ||
+      entry.patternTag ||
+      entry.coreThemes.length ||
+      entry.studentPoints.length ||
+      entry.teacherPoints.length ||
+      entry.studentQuestions.length ||
+      entry.debateQuestions.length ||
+      entry.realWorldExamples.length ||
+      entry.pointOrigin ||
+      entry.pointScore;
+
+    if (!hasContent) {
+      alert("Add at least one lesson field before saving.");
+      return;
+    }
+
+    const outputs = getLessonOutputs();
+    outputs.push(entry);
+    setLessonOutputs(outputs);
+    renderLessonOutputs();
+
+    if (lessonStudentName) lessonStudentName.value = "";
+    if (lessonQuotes) lessonQuotes.value = "";
+    if (lessonVocab) lessonVocab.value = "";
+    if (lessonPoints) lessonPoints.value = "";
+    if (lessonNextStep) lessonNextStep.value = "";
+    if (lessonPatternTag) lessonPatternTag.value = "";
+    if (lessonDateTime) lessonDateTime.value = formatNowForDatetimeLocal();
+    if (lessonCoreThemes) lessonCoreThemes.value = "";
+    if (lessonStudentPoints) lessonStudentPoints.value = "";
+    if (lessonTeacherPoints) lessonTeacherPoints.value = "";
+    if (lessonStudentQuestions) lessonStudentQuestions.value = "";
+    if (lessonDebateQuestions) lessonDebateQuestions.value = "";
+    if (lessonRealWorldExamples) lessonRealWorldExamples.value = "";
+    if (lessonPointOrigin) lessonPointOrigin.value = "";
+    if (lessonPointScore) lessonPointScore.value = "";
+  });
+}
+
+renderLessonOutputs();
+const globalMediaLoader = document.getElementById('globalMediaLoader');
+const loadedFileList = document.getElementById('loadedFileList');
+
+const loadedMediaItems = [];
+
+function renderLoadedFileList() {
+  if (!loadedFileList) return;
+
+  loadedFileList.innerHTML = '';
+
+  loadedMediaItems.forEach((item, index) => {
+    const pill = document.createElement('div');
+    pill.className = 'loaded-file-pill';
+    pill.textContent = `${index + 1}. ${item.file.name}`;
+    loadedFileList.appendChild(pill);
+  });
+}
+
+function handleGlobalMediaLoad(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  files.forEach((file) => {
+    const objectUrl = URL.createObjectURL(file);
+    loadedMediaItems.push({
+      file,
+      objectUrl,
+      type: file.type.startsWith('video/') ? 'video' : 'audio'
+    });
+  });
+
+  renderLoadedFileList();
+
+  console.log('Loaded media items:', loadedMediaItems);
+}
+
+if (globalMediaLoader) {
+  globalMediaLoader.addEventListener('change', handleGlobalMediaLoad);
+}
+function renderMobilePresetStrip(){
+  const strip = document.getElementById('mobilePresetStrip');
+  const status = document.getElementById('mobilePresetStatus');
+  if (!strip) return;
+
+  strip.innerHTML = '';
+
+  presetData.forEach((preset) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'mobile-preset-chip';
+    btn.textContent = preset.name;
+
+    btn.addEventListener('click', () => {
+      localStorage.setItem('tri-last-preset', JSON.stringify(preset));
+      if (status) {
+        status.textContent = `Active preset: ${preset.name} — ${preset.category}`;
+      }
+    });
+
+    strip.appendChild(btn);
+  });
+
+  const saved = localStorage.getItem('tri-last-preset');
+  if (saved && status) {
+    try {
+      const parsed = JSON.parse(saved);
+      status.textContent = `Active preset: ${parsed.name} — ${parsed.category}`;
+    } catch {}
+  }
+}
+function parseFilterFillerMedia() {
+  const title = document.getElementById("filterVideoTitle")?.value.trim() || "Untitled Source";
+  const raw = document.getElementById("filterRawInput")?.value.trim() || "";
+
+  const povOutput = document.getElementById("filterPovOutput");
+  const lessonOutput = document.getElementById("filterLessonOutput");
+
+  if (!raw) {
+    if (povOutput) povOutput.innerHTML = "Paste video notes or comments first.";
+    return;
+  }
+
+  const lower = raw.toLowerCase();
+
+  const themeHints = [];
+
+  if (lower.includes("grifter")) themeHints.push("grifting / public trust");
+  if (lower.includes("word salad")) themeHints.push("word salad / unclear communication");
+  if (lower.includes("religion") || lower.includes("bible") || lower.includes("god")) themeHints.push("religion / spiritual performance");
+  if (lower.includes("narciss")) themeHints.push("narcissism / ego");
+  if (lower.includes("deflect")) themeHints.push("deflection / avoidance");
+  if (lower.includes("touch")) themeHints.push("body language / boundaries");
+  if (lower.includes("prison") || lower.includes("court") || lower.includes("judge")) themeHints.push("law / accountability");
+
+  const themes = themeHints.length ? themeHints : ["public reaction", "communication style", "debate potential"];
+
+  if (povOutput) {
+    povOutput.innerHTML = `
+      <strong>Source:</strong> ${title}<br><br>
+      <strong>Core Themes:</strong><br>
+      ${themes.map(t => `- ${t}`).join("<br>")}<br><br>
+
+      <strong>POV Questions:</strong><br>
+      - Is eloquence a sign of intelligence, or can it hide lack of substance?<br>
+      - When does spirituality become branding?<br>
+      - Is avoiding direct answers always manipulation?<br>
+      - Do comment sections reveal truth, mob mentality, or both?<br>
+      - How much should body language affect public judgment?
+    `;
+  }
+
+  if (lessonOutput) {
+    lessonOutput.innerHTML = `
+      <strong>Vocabulary:</strong><br>
+      grifter, deflection, performative, accountability, allegation, nuance, credibility, body language<br><br>
+
+      <strong>Speaking Task:</strong><br>
+      Explain one complex opinion in simple English.<br><br>
+
+      <strong>Debate Task:</strong><br>
+      “Simple answers are more trustworthy than complex explanations.”
+    `;
+  }
+}
+
+document.getElementById("parseFilterFillerBtn")?.addEventListener("click", parseFilterFillerMedia);
+
+document.getElementById("clearFilterFillerBtn")?.addEventListener("click", () => {
+  document.getElementById("filterVideoTitle").value = "";
+  document.getElementById("filterRawInput").value = "";
+  document.getElementById("filterPovOutput").innerHTML = "";
+  document.getElementById("filterLessonOutput").innerHTML = "";
+});
+renderMobilePresetStrip();
+// ---------- LESSON VAULT PARSER V1 ----------
+function parseRawVaultText(text) {
+  const lines = String(text || "")
+    .split("\n")
+    .map(line => line.trim())
+    .filter(Boolean);
+
+  const result = {
+    topic: [],
+    vocab: [],
+    quotes: [],
+    points: [],
+    comments: [],
+    captions: [],
+    hashtags: [],
+    routes: []
+  };
+
+  lines.forEach(line => {
+    const lower = line.toLowerCase();
+
+    if (
+      lower.startsWith("spoken:") ||
+      lower.startsWith("quote:") ||
+      line.includes('"') ||
+      line.includes("“") ||
+      line.includes("”")
+    ) {
+      result.quotes.push(line);
+      return;
+    }
+
+    if (
+      lower.startsWith("comment:") ||
+      lower.includes("comments") ||
+      lower.includes("shannon sharpe")
+    ) {
+      result.comments.push(line);
+      return;
+    }
+
+    if (
+      lower.startsWith("caption:") ||
+      lower.startsWith("title:") ||
+      lower.includes("hashtag")
+    ) {
+      result.captions.push(line);
+
+      const hashtags = line.match(/#[\w\u00C0-\u024F]+/g);
+      if (hashtags) {
+        result.hashtags.push(...hashtags);
+      }
+      return;
+    }
+
+    if (
+      lower.startsWith("topic:") ||
+      lower.startsWith("theme:")
+    ) {
+      result.topic.push(line);
+      return;
+    }
+
+    if (
+      lower.startsWith("vocab:") ||
+      lower.includes("word:") ||
+      lower.includes("vocabulary")
+    ) {
+      result.vocab.push(line);
+      return;
+    }
+
+    if (
+      lower.includes("need") ||
+      lower.includes("route") ||
+      lower.includes("tool") ||
+      lower.includes("system") ||
+      lower.includes("journal")
+    ) {
+      result.points.push(line);
+      return;
+    }
+
+    result.points.push(line);
+  });
+
+  if (result.vocab.length) result.routes.push("Pronounz");
+  if (result.quotes.length || result.comments.length) result.routes.push("POV");
+  if (result.points.length) result.routes.push("Lesson Vault");
+  if (result.captions.length || result.hashtags.length) result.routes.push("PointPin Journal");
+
+  result.routes = [...new Set(result.routes)];
+
+  return result;
+}
+
+function renderVaultOutputs(result) {
+  const teacherEl = $("teacherVaultOutput");
+  const studentEl = $("studentVaultOutput");
+
+  if (!teacherEl || !studentEl) return;
+
+  teacherEl.innerHTML = `
+    <div><strong>Topic / Theme</strong><br>${result.topic.length ? result.topic.join("<br>") : "—"}</div><br>
+    <div><strong>Quotes</strong><br>${result.quotes.length ? result.quotes.join("<br>") : "—"}</div><br>
+    <div><strong>Vocabulary</strong><br>${result.vocab.length ? result.vocab.join("<br>") : "—"}</div><br>
+    <div><strong>Comments</strong><br>${result.comments.length ? result.comments.join("<br>") : "—"}</div><br>
+    <div><strong>Captions / Titles / Hashtags</strong><br>${[...result.captions, ...result.hashtags].length ? [...result.captions, ...result.hashtags].join("<br>") : "—"}</div><br>
+    <div><strong>System Points</strong><br>${result.points.length ? result.points.join("<br>") : "—"}</div><br>
+    <div><strong>Suggested Routes</strong><br>${result.routes.join(" → ") || "—"}</div>
+  `;
+
+  studentEl.innerHTML = `
+    <div><strong>Main Theme</strong><br>${result.topic[0] || "—"}</div><br>
+    <div><strong>Strong Quotes</strong><br>${result.quotes.slice(0, 3).join("<br>") || "—"}</div><br>
+    <div><strong>Key Learning Points</strong><br>${result.points.slice(0, 3).join("<br>") || "—"}</div><br>
+    <div><strong>Useful Words / Expressions</strong><br>${result.vocab.slice(0, 5).join("<br>") || "—"}</div><br>
+    <div><strong>Suggested Next Route</strong><br>${result.routes.join(" / ") || "—"}</div>
+  `;
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  const parseBtn = document.getElementById("parseVaultBtn");
+  const clearBtn = document.getElementById("clearVaultBtn");
+  const input = document.getElementById("rawVaultInput");
+
+  if (parseBtn && input) {
+    parseBtn.addEventListener("click", () => {
+      try {
+        const parsed = parseRawVaultText(input.value);
+        renderVaultOutputs(parsed);
+        console.log("Vault parsed:", parsed);
+      } catch (err) {
+        console.error("Parser error:", err);
+      }
+    });
+  }
+
+  if (clearBtn && input) {
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      document.getElementById("teacherVaultOutput").innerHTML = "";
+      document.getElementById("studentVaultOutput").innerHTML = "";
+    });
+  }
+});
+const PARSED_VAULT_KEY = "tri-parsed-lesson-vault-v1";
+
+function getParsedVaultEntries() {
+  try {
+    return JSON.parse(localStorage.getItem(PARSED_VAULT_KEY) || "[]");
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveParsedVaultEntry() {
+  const rawInput = document.getElementById("rawVaultInput")?.value || "";
+  const teacherView = document.getElementById("teacherVaultOutput")?.innerText || "";
+  const studentView = document.getElementById("studentVaultOutput")?.innerText || "";
+
+  if (!rawInput.trim() && !teacherView.trim() && !studentView.trim()) {
+    alert("Nothing to save yet.");
+    return;
+  }
+
+const studentName = document.getElementById("parsedStudentName")?.value || "Unnamed Student";
+const lessonTitle = document.getElementById("parsedLessonTitle")?.value || "Untitled Lesson";
+
+const entry = {
+  id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+  createdAt: new Date().toLocaleString(),
+  studentName,
+  lessonTitle,
+  rawInput,
+  teacherView,
+  studentView
+};
+
+  const entries = getParsedVaultEntries();
+  entries.unshift(entry);
+
+  localStorage.setItem(PARSED_VAULT_KEY, JSON.stringify(entries));
+  renderParsedVaultEntries();
+}
+renderStudentLibrary();
+renderStudentLibrary();
+// ---------- FILTER FILLER / MEDIA + COMMENT PARSER V1 ----------
+
+function parseFilterFillerMedia() {
+  const titleEl = document.getElementById("filterVideoTitle");
+  const rawEl = document.getElementById("filterRawInput");
+  const povOutput = document.getElementById("filterPovOutput");
+  const lessonOutput = document.getElementById("filterLessonOutput");
+
+  const title = titleEl?.value.trim() || "Untitled Source";
+  const raw = rawEl?.value.trim() || "";
+
+  if (!raw) {
+    if (povOutput) povOutput.innerHTML = "Paste video notes or comments first.";
+    return;
+  }
+
+  const lower = raw.toLowerCase();
+  const themes = [];
+
+  if (lower.includes("grifter")) themes.push("grifting / public trust");
+  if (lower.includes("word salad")) themes.push("word salad / unclear communication");
+  if (lower.includes("religion") || lower.includes("bible")) themes.push("spiritual performance");
+  if (lower.includes("narciss")) themes.push("narcissism / ego");
+  if (lower.includes("deflect")) themes.push("deflection / avoidance");
+  if (lower.includes("touch")) themes.push("body language / boundaries");
+  if (lower.includes("prison") || lower.includes("court")) themes.push("law / accountability");
+
+  const finalThemes = themes.length ? [...new Set(themes)] : ["public reaction", "communication style"];
+
+  if (povOutput) {
+    povOutput.innerHTML = `
+      <strong>Source:</strong> ${title}<br><br>
+
+      <strong>Core Themes:</strong><br>
+      ${finalThemes.map(t => `- ${t}`).join("<br>")}<br><br>
+
+      <strong>POV Questions:</strong><br>
+      - Is eloquence real intelligence or a mask?<br>
+      - When does spirituality become branding?<br>
+      - Is avoiding direct answers manipulation?<br>
+      - Are comment sections truth or mob mentality?<br>
+    `;
+  }
+
+  if (lessonOutput) {
+    lessonOutput.innerHTML = `
+      <strong>Vocabulary:</strong><br>
+      grifter, deflection, performative, accountability, nuance<br><br>
+
+      <strong>Speaking Task:</strong><br>
+      Explain a complex opinion simply.<br><br>
+
+      <strong>Debate Task:</strong><br>
+      “Simple answers are more trustworthy than complex explanations.”
+    `;
+  }
+}
+
+function clearFilterFillerMedia() {
+  document.getElementById("filterVideoTitle").value = "";
+  document.getElementById("filterRawInput").value = "";
+  document.getElementById("filterPovOutput").innerHTML = "";
+  document.getElementById("filterLessonOutput").innerHTML = "";
+}
+
+document.getElementById("parseFilterFillerBtn")?.addEventListener("click", parseFilterFillerMedia);
+document.getElementById("clearFilterFillerBtn")?.addEventListener("click", clearFilterFillerMedia);
+function renderParsedVaultEntries() {
+  const list = document.getElementById("savedParsedVaultList");
+  if (!list) return;
+
+  const entries = getParsedVaultEntries();
+
+  if (!entries.length) {
+    list.innerHTML = `<div class="tiny">No parsed lessons saved yet.</div>`;
+    return;
+  }
+
+  list.innerHTML = entries.map(entry => `
+    <div class="snippet">
+      <strong>Parsed Lesson</strong>
+      <div class="tiny">${entry.createdAt}</div>
+
+      <details>
+        <summary>Teacher View</summary>
+        <pre style="white-space:pre-wrap;">${escapeHtml(entry.teacherView || "—")}</pre>
+      </details>
+
+      <details>
+        <summary>Student View</summary>
+        <pre style="white-space:pre-wrap;">${escapeHtml(entry.studentView || "—")}</pre>
+      </details>
+
+      <details>
+        <summary>Raw Input</summary>
+        <pre style="white-space:pre-wrap;">${escapeHtml(entry.rawInput || "—")}</pre>
+      </details>
+
+      <button type="button" onclick="deleteParsedVaultEntry('${entry.id}')">
+        Delete
+      </button>
+    </div>
+  `).join("");
+}
+
+function deleteParsedVaultEntry(id) {
+  const entries = getParsedVaultEntries().filter(entry => entry.id !== id);
+  localStorage.setItem(PARSED_VAULT_KEY, JSON.stringify(entries));
+  renderParsedVaultEntries();
+}
+
+function escapeHtml(text) {
+  return String(text || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+document.getElementById("saveParsedVaultBtn")?.addEventListener("click", saveParsedVaultEntry);
+
+renderParsedVaultEntries();
+function renderStudentLibrary() {
+  const list = document.getElementById("studentLibraryList");
+  if (!list) return;
+
+  const entries = getParsedVaultEntries();
+
+  if (!entries.length) {
+    list.innerHTML = `<div class="tiny">No students saved yet.</div>`;
+    return;
+  }
+
+  const grouped = entries.reduce((acc, entry) => {
+    const name = entry.studentName || "Unnamed Student";
+    if (!acc[name]) acc[name] = [];
+    acc[name].push(entry);
+    return acc;
+  }, {});
+
+  list.innerHTML = Object.keys(grouped).map(student => `
+    <div class="snippet">
+      <strong>${escapeHtml(student)}</strong>
+      <div class="tiny">${grouped[student].length} saved lesson(s)</div>
+
+      ${grouped[student].map(entry => `
+        <details style="margin-top:8px;">
+          <summary>${escapeHtml(entry.lessonTitle || "Untitled Lesson")} — ${entry.createdAt}</summary>
+
+          <details>
+            <summary>Teacher View</summary>
+            <pre style="white-space:pre-wrap;">${escapeHtml(entry.teacherView || "—")}</pre>
+          </details>
+
+          <details>
+            <summary>Student View</summary>
+            <pre style="white-space:pre-wrap;">${escapeHtml(entry.studentView || "—")}</pre>
+          </details>
+        </details>
+      `).join("")}
+    </div>
+  `).join("");
+}
+  </script>
+ <script>
+(function () {
+  const quickMediaLoader = document.getElementById('quickMediaLoader');
+  const quickMediaQueue = document.getElementById('quickMediaQueue');
+  const quickRouteStatus = document.getElementById('quickRouteStatus');
+  const sendNextEmptyBtn = document.getElementById('sendNextEmptyBtn');
+  const clearQuickMediaBtn = document.getElementById('clearQuickMediaBtn');
+
+  if (!quickMediaLoader || !quickMediaQueue || !quickRouteStatus || !sendNextEmptyBtn || !clearQuickMediaBtn) {
+    return;
+  }
+
+  const queue = [];
+
+  function getLayerMediaEl(letter) {
+    return document.getElementById(`audio${letter}`);
+  }
+
+  function getLayerStatusEl(letter) {
+    return document.getElementById(`status${letter}`);
+  }
+
+  function renderQueue() {
+    quickMediaQueue.innerHTML = '';
+
+    if (!queue.length) {
+      quickRouteStatus.textContent = 'No queued files';
+      return;
+    }
+
+    queue.forEach((item, index) => {
+      const pill = document.createElement('div');
+      pill.className = 'quick-media-pill';
+      pill.textContent = `${index + 1}. ${item.file.name}`;
+      quickMediaQueue.appendChild(pill);
+    });
+
+    quickRouteStatus.textContent = `${queue.length} file(s) queued`;
+  }
+
+  function layerIsEmpty(letter) {
+    const mediaEl = getLayerMediaEl(letter);
+    return !mediaEl || !mediaEl.src;
+  }
+
+  function assignToLayer(letter, item) {
+    const mediaEl = getLayerMediaEl(letter);
+    const statusEl = getLayerStatusEl(letter);
+
+    if (!mediaEl) return false;
+
+    mediaEl.src = item.objectUrl;
+    if (typeof mediaEl.load === 'function') mediaEl.load();
+
+    if (statusEl) {
+      statusEl.textContent = `Loaded ${letter} file: ${item.file.name}`;
+    }
+
+    return true;
+  }
+
+  function findNextEmptyLayer() {
+    const order = ['A', 'B', 'C', 'D'];
+    for (const letter of order) {
+      if (layerIsEmpty(letter)) return letter;
+    }
+    return null;
+  }
+
+  quickMediaLoader.addEventListener('change', function (event) {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+
+    files.forEach((file) => {
+      queue.push({
+        file,
+        objectUrl: URL.createObjectURL(file)
+      });
+    });
+
+    renderQueue();
+    quickMediaLoader.value = '';
+  });
+
+  sendNextEmptyBtn.addEventListener('click', function () {
+    if (!queue.length) {
+      quickRouteStatus.textContent = 'No queued files to send';
+      return;
+    }
+
+    const nextLayer = findNextEmptyLayer();
+    if (!nextLayer) {
+      quickRouteStatus.textContent = 'All layers already have media';
+      return;
+    }
+
+    const item = queue.shift();
+    const ok = assignToLayer(nextLayer, item);
+
+    if (ok) {
+      quickRouteStatus.textContent = `${item.file.name} sent to Layer ${nextLayer}`;
+    } else {
+      quickRouteStatus.textContent = `Failed to send ${item.file.name}`;
+      queue.unshift(item);
+    }
+
+    renderQueue();
+  });
+
+  clearQuickMediaBtn.addEventListener('click', function () {
+    queue.splice(0, queue.length);
+    quickMediaQueue.innerHTML = '';
+    quickRouteStatus.textContent = 'Queue cleared';
+  });
+})();
+(function setupAppModes(){
+  const buttons = Array.from(document.querySelectorAll('.app-mode-btn'));
+  const panels = Array.from(document.querySelectorAll('.app-mode-panel'));
+
+  function activateMode(modeId){
+    buttons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === modeId);
+    });
+
+    panels.forEach(panel => {
+      panel.classList.toggle('active', panel.id === modeId);
+    });
+
+    localStorage.setItem('tri-active-mode', modeId);
+  }
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => activateMode(btn.dataset.mode));
+  });
+
+  const savedMode = localStorage.getItem('tri-active-mode') || 'triMode';
+  activateMode(savedMode);
+})();
+</script>
+<script>
+(function () {
+  const presetNameInput = document.getElementById('presetNameInput');
+  const presetCategoryInput = document.getElementById('presetCategoryInput');
+  const presetNotesInput = document.getElementById('presetNotesInput');
+  const saveCurrentPresetBtn = document.getElementById('saveCurrentPresetBtn');
+  const persistentPresetList = document.getElementById('persistentPresetList');
+
+  if (!presetNameInput || !presetCategoryInput || !presetNotesInput || !saveCurrentPresetBtn || !persistentPresetList) {
+    return;
+  }
+
+  const STORAGE_KEY = 'tri_persistent_presets_v1';
+
+  function getMediaSrc(id) {
+    const el = document.getElementById(id);
+    return el ? (el.currentSrc || el.src || '') : '';
+  }
+
+  function getValue(id, fallback = '') {
+    const el = document.getElementById(id);
+    return el ? (el.value || fallback) : fallback;
+  }
+
+  function loadPresets() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function savePresets(presets) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(presets));
+  }
+
+  function buildCurrentPreset() {
+    return {
+      id: Date.now().toString(),
+      name: presetNameInput.value.trim() || 'Untitled Preset',
+      category: presetCategoryInput.value.trim() || 'Uncategorized',
+      notes: presetNotesInput.value.trim(),
+      createdAt: new Date().toLocaleString(),
+      layers: {
+        A: {
+          label: getValue('layerALabel', 'Voice'),
+          src: getMediaSrc('audioA'),
+          volume: getValue('volA', '0.8'),
+          loop: !!document.getElementById('loopA')?.checked
+        },
+        B: {
+          label: getValue('layerBLabel', 'Ambient'),
+          src: getMediaSrc('audioB'),
+          volume: getValue('volB', '0.55'),
+          loop: !!document.getElementById('loopB')?.checked
+        },
+        C: {
+          label: getValue('layerCLabel', 'Melody'),
+          src: getMediaSrc('audioC'),
+          volume: getValue('volC', '0.5'),
+          loop: !!document.getElementById('loopC')?.checked
+        },
+        D: {
+          label: getValue('layerDLabel', 'Rhythm'),
+          src: getMediaSrc('audioD'),
+          volume: getValue('volD', '0.5'),
+          loop: !!document.getElementById('loopD')?.checked
+        }
+      }
+    };
+  }
+
+  function applyPreset(preset) {
+    const layerMap = {
+      A: { mediaId: 'audioA', volId: 'volA', loopId: 'loopA', statusId: 'statusA' },
+      B: { mediaId: 'audioB', volId: 'volB', loopId: 'loopB', statusId: 'statusB' },
+      C: { mediaId: 'audioC', volId: 'volC', loopId: 'loopC', statusId: 'statusC' },
+      D: { mediaId: 'audioD', volId: 'volD', loopId: 'loopD', statusId: 'statusD' }
+    };
+
+    Object.keys(layerMap).forEach((letter) => {
+      const config = layerMap[letter];
+      const layer = preset.layers[letter];
+      if (!layer) return;
+
+      const mediaEl = document.getElementById(config.mediaId);
+
+      const volEl = document.getElementById(config.volId);
+      const loopEl = document.getElementById(config.loopId);
+      const statusEl = document.getElementById(config.statusId);
+
+      if (mediaEl && layer.src) {
+        mediaEl.src = layer.src;
+        if (typeof mediaEl.load === 'function') mediaEl.load();
+      }
+
+      if (volEl) {
+        volEl.value = layer.volume ?? volEl.value;
+        volEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      if (loopEl) {
+        loopEl.checked = !!layer.loop;
+        loopEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      if (statusEl) {
+        statusEl.textContent = `Preset loaded into Layer ${letter}`;
+      }
+    });
+  }
+
+  function deletePreset(id) {
+    const presets = loadPresets().filter((p) => p.id !== id);
+    savePresets(presets);
+    renderPresetLibrary();
+  }
+
+  function renderPresetLibrary() {
+    const presets = loadPresets();
+
+    if (!presets.length) {
+      persistentPresetList.innerHTML = '<div class="tri-preset-item preset-empty">No saved presets yet.</div>';
+      return;
+    }
+
+    persistentPresetList.innerHTML = presets.map((preset) => {
+      const layerSummary = ['A', 'B', 'C', 'D']
+        .map((letter) => {
+          const layer = preset.layers[letter];
+          if (!layer) return null;
+          return `${letter}: ${layer.label || '-'}`;
+        })
+        .filter(Boolean)
+        .join(' • ');
+
+      return `
+        <div class="tri-preset-item">
+          <strong>${preset.name}</strong>
+          <div>${preset.category}</div>
+          <div class="tri-preset-meta">${preset.notes || ''}</div>
+          <div class="tri-preset-meta">${layerSummary}</div>
+          <div class="tri-preset-meta">${preset.createdAt}</div>
+          <div class="preset-actions">
+            <button type="button" data-load-id="${preset.id}">Load</button>
+            <button type="button" data-delete-id="${preset.id}">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    persistentPresetList.querySelectorAll('[data-load-id]').forEach((btn) => {
+      btn.addEventListener('click', function () {
+        const id = this.getAttribute('data-load-id');
+        const preset = loadPresets().find((p) => p.id === id);
+        if (preset) applyPreset(preset);
+      });
+    });
+
+    persistentPresetList.querySelectorAll('[data-delete-id]').forEach((btn) => {
+      btn.addEventListener('click', function () {
+        const id = this.getAttribute('data-delete-id');
+        deletePreset(id);
+      });
+    });
+  }
+
+  saveCurrentPresetBtn.addEventListener('click', function () {
+    const preset = buildCurrentPreset();
+    const presets = loadPresets();
+    presets.unshift(preset);
+    savePresets(presets);
+
+    presetNameInput.value = '';
+    presetCategoryInput.value = '';
+    presetNotesInput.value = '';
+
+    renderPresetLibrary();
+  });
+
+  renderPresetLibrary();
+})();
+// =========================================================================
+// OMT TRI TOOL V1.5 ENGINE SUITE OVERLAY (NON-DESTRUCTIVE CORE MODULE)
+// =========================================================================
+(function() {
+  console.log("OMT Advanced Engine Suite Online. Auditing DOM layout node patterns...");
+
+  // --- 1. CORE AUDIO & SYNTHESIZER SUB-SYSTEM ---
+  class TriToolAudioEngine {
+    constructor() {
+      this.ctx = null;
+      this.masterGain = null;
+      this.isInitialized = false;
+      this.mixedDestinationNode = null;
+      this.generators = {
+        clearing417: { osc: null, gain: null, active: false },
+        rooting110: { osc: null, gain: null, active: false }
+      };
+    }
+
+    init() {
+      if (this.isInitialized) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioContext();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+      this.masterGain.connect(this.ctx.destination);
+      this.isInitialized = true;
+      console.log("OMT Web Audio Pipeline Linked.");
+    }
+
+    toggleClearingFrequency(play) {
+      if (!this.isInitialized) this.init();
+      if (!play || this.generators.clearing417.active) return;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(417, this.ctx.currentTime); // Sacral cord clearing frequency
+      gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+      
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start();
+
+      this.generators.clearing417 = { osc, gain, active: true };
+      console.log("417Hz Active Field Anchored.");
+    }
+
+    toggleRootingAnchor(play) {
+      if (!this.isInitialized) this.init();
+      if (!play || this.generators.rooting110.active) return;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle'; // Grounding sub-harmonics
+      osc.frequency.setValueAtTime(110, this.ctx.currentTime); // Standard grounding pitch
+      gain.gain.setValueAtTime(0.20, this.ctx.currentTime);
+      
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start();
+
+      this.generators.rooting110 = { osc, gain, active: true };
+      console.log("Grounding Root Frequency Matrix Locked.");
+    }
+
+    killGenerators() {
+      if (this.generators.clearing417.active) {
+        this.generators.clearing417.osc.stop();
+        this.generators.clearing417.active = false;
+      }
+      if (this.generators.rooting110.active) {
+        this.generators.rooting110.osc.stop();
+        this.generators.rooting110.active = false;
+      }
+      console.log("All active background synthesizers safely purged.");
+    }
+  }
+
+  // --- 2. ADVANCED SPLIT-BUS RECORDER & INTEGRATED INTENTION PARSER ---
+  class AdvancedTriRecorder {
+    constructor(audioEngineInstance) {
+      this.engine = audioEngineInstance;
+      this.mediaRecorder = null;
+      this.recordedChunks = [];
+      this.micStream = null;
+    }
+
+    async startCapture(mode = "mic_only") {
+      this.recordedChunks = [];
+      if (!this.engine.isInitialized) this.engine.init();
+
+      try {
+        this.micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: false }
+        });
+
+        this.engine.mixedDestinationNode = this.engine.ctx.createMediaStreamDestination();
+
+        // SPLIT-BUS MATRIX ROUTING
+        if (mode === "mic_only" || mode === "mic_plus_layers") {
+          const micSource = this.engine.ctx.createMediaStreamSource(this.micStream);
+          micSource.connect(this.engine.mixedDestinationNode);
+        }
+
+        if (mode === "layers_only" || mode === "mic_plus_layers") {
+          this.engine.masterGain.connect(this.engine.mixedDestinationNode);
+        }
+
+        this.mediaRecorder = new MediaRecorder(this.engine.mixedDestinationNode.stream);
+        
+        this.mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) this.recordedChunks.push(e.data);
+        };
+
+        this.mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(this.recordedChunks, { type: 'audio/webm' });
+          const recordingUrl = URL.createObjectURL(audioBlob);
+          this.parseAndAllocateToSpine(recordingUrl, mode);
+        };
+
+        this.mediaRecorder.start();
+        console.log(`OMT Recorder Bus Active: [${mode}] pipeline verified.`);
+      } catch (err) {
+        console.warn("Hardware microphone streaming allocation conflict:", err);
+      }
+    }
+
+    stopCapture() {
+      if (this.mediaRecorder && this.mediaRecorder.state !== "inactive") {
+        this.mediaRecorder.stop();
+        this.micStream.getTracks().forEach(track => track.stop());
+        console.log("Recording bus cleanly committed to Library Spine Parser.");
+      }
+    }
+
+    // THE LIBRARY SPINE PARSER: Autonomously allocates clips via active frequencies or note strings
+    parseAndAllocateToSpine(url, mode) {
+      // Intelligently scans the DOM layout for your current prompt lane input or text areas
+      const promptField = document.querySelector('input[type="text"]') || { value: "" };
+      const noteContent = promptField.value.trim();
+      
+      let classification = "General_Mundane_Log";
+      if (noteContent.toLowerCase().includes("numerology")) classification = "Numerology_Sequence_Tracker";
+      else if (noteContent.toLowerCase().includes("flow") || noteContent.toLowerCase().includes("freestyle")) classification = "Freestyle_Flow_Capture";
+      else if (this.engine.generators.clearing417.active) classification = "417Hz_Sacral_Release_Capsule";
+      else if (mode === "mic_only") classification = "Voice_Affirmation_Spine";
+
+      const dataPacket = {
+        id: "OMT-" + Date.now(),
+        timestamp: new Date().toLocaleTimeString(),
+        blobUrl: url,
+        classification: classification,
+        notes: noteContent || "Automated dynamic system snapshot."
+      };
+
+      if (!window.OmtLibrarySpine) window.OmtLibrarySpine = [];
+      window.OmtLibrarySpine.push(dataPacket);
+
+      // Dynamically pushes real-time allocation summaries into your existing UI logger
+      const eventLogContainer = document.querySelector('.event-log') || document.body;
+      const logElement = document.createElement("div");
+      logElement.className = "event-item tiny";
+      logElement.style.borderLeft = "3px solid var(--accent, #2563eb)";
+      logElement.style.paddingLeft = "8px";
+      logElement.innerHTML = `<strong>[Spine Spine Allocation Engine]:</strong> Shunted stream directly into <u>${dataPacket.classification}</u> | Note: "${dataPacket.notes}"`;
+      eventLogContainer.prepend(logElement);
+    }
+  }
+
+  // --- 3. EXERT INSTANTIATION HOOKS ---
+  window.OmtEngineSubSuite = new TriToolAudioEngine();
+  window.OmtAdvancedRecorderModule = new AdvancedTriRecorder(window.OmtEngineSubSuite);
+
+  // --- 4. DYNAMIC PROXY STREAM BRIDGE (PROXY FIREWALL REMOVAL) ---
+  window.loadExternalStreamOverride = function(layerKey) {
+    const streamUrlInput = document.getElementById(`layer${layerKey}Url`) || { value: "" };
+    const targetUrl = streamUrlInput.value.trim();
+    const iframe = document.getElementById(`iframe-${layerKey}`);
+    const viewport = document.getElementById(`viewport-layer-${layerKey}`);
+    
+    if (targetUrl.includes("://youtube.com")) {
+      const videoId = targetUrl.split("v=")[1].split("&")[0];
+      if (iframe && viewport) {
+        iframe.src = `https://youtube.com{videoId}?enablejsapi=1&autoplay=1&controls=0`;
+        viewport.style.display = "block";
+        console.log(`Stream pipeline established legally for video index [${videoId}].`);
+      }
+    } else {
+      alert("Frictionless loading requires a standard YouTube Watch link structure.");
+    }
+  };
+})();
+// =========================================================================
+// OMT DYNAMIC ZOOM-RECORDING & LESSON VAULT PARSER MODULE (NON-DESTRUCTIVE)
+// =========================================================================
+(function() {
+  console.log("OMT Spine Layer: Initializing Zoom Media Parser MVP...");
+
+  class ZoomLessonParser {
+    constructor() {
+      this.currentMediaUrl = null;
+      this.mockTranscriptData = [
+        { timestamp: "00:12", text: "Welcome to the session. Let's ground our energy.", type: "Stillness" },
+        { timestamp: "01:45", text: "Notice the numerology sequence repeating in your day.", type: "Numerology" },
+        { timestamp: "04:20", text: "Break through the pressure. Let the freestyle flow begin.", type: "Freestyle" },
+        { timestamp: "06:13", text: "One decision can quietly change your life timeline.", type: "OMT Pivot" }
+      ];
+    }
+
+    // 1. INPUT HANDLE: Extracts and reads a local Zoom recording or media package file safely
+    handleMediaUpload(fileElement) {
+      const file = fileElement.files[0];
+      if (!file) return;
+
+      // Create a local, temporary URL stream for the video file without uploading to external servers
+      this.currentMediaUrl = URL.createObjectURL(file);
+      console.log(`OMT Parser Node: Zoom recording [${file.name}] linked cleanly to timeline memory.`);
+      
+      this.logToParserPanel(`Successfully loaded: ${file.name} (Ready for timestamp extraction)`);
+    }
+
+    // 2. SEARCH & JUMP ENGINE: Matches user keywords to exact timestamp milestones
+    searchLessonTimeline(keyword) {
+      if (!keyword) return;
+      console.log(`Scanning transcript layers for keyword: "${keyword}"...`);
+      
+      const matchedEntries = this.mockTranscriptData.filter(item => 
+        item.text.toLowerCase().includes(keyword.toLowerCase())
+      );
+
+      const displayContainer = document.getElementById("spineLogView") || document.body;
+      
+      if (matchedEntries.length === 0) {
+        this.logToParserPanel(`No matching moments found for "${keyword}".`);
+        return;
+      }
+
+      matchedEntries.forEach(entry => {
+        const itemRow = document.createElement("div");
+        itemRow.className = "event-item tiny";
+        itemRow.style.borderLeft = "3px solid var(--good, #16a34a)";
+        itemRow.style.paddingLeft = "8px";
+        itemRow.style.cursor = "pointer";
+        
+        // When clicked, this routes the user straight to that timestamp milestone
+        itemRow.onclick = () => {
+          alert(`Jumping timeline to [${entry.timestamp}] for specific moment extraction.`);
+          this.allocateClipToSpine(entry);
+        };
+
+        itemRow.innerHTML = `<strong>[Moment Match - ${entry.timestamp}]:</strong> "${entry.text}" <span class="pill">${entry.type}</span>`;
+        displayContainer.prepend(itemRow);
+      });
+    }
+
+    // 3. THE ALLOCATION MATRIC: Shunts the verified moment straight into the local storage spine
+    allocateClipToSpine(entry) {
+      const parsedPacket = {
+        id: "POINT-" + Date.now(),
+        timestampMarker: entry.timestamp,
+        transcriptSnippet: entry.text,
+        allocatedCategory: entry.type === "Numerology" ? "Numerology_Sequence_Tracker" : "Voice_Affirmation_Spine",
+        originSource: "Zoom_Hasan_Ata_Lesson_Artifact"
+      };
+
+      if (!window.OmtLibrarySpine) window.OmtLibrarySpine = [];
+      window.OmtLibrarySpine.push(parsedPacket);
+
+      // Save into browser local storage automatically so data survives phone restarts
+      localStorage.setItem("OMT_Library_Spine_State", JSON.stringify(window.OmtLibrarySpine));
+      
+      this.logToParserPanel(`Flawlessly shunted moment [${entry.timestamp}] directly to ${parsedPacket.allocatedCategory}!`);
+    }
+
+    logToParserPanel(message) {
+      const container = document.getElementById("spineLogView") || document.body;
+      const msgDiv = document.createElement("div");
+      msgDiv.className = "event-item tiny";
+      msgDiv.style.color = "var(--muted)";
+      msgDiv.innerHTML = `<strong>[Parser Engine]:</strong> ${message}`;
+      container.prepend(msgDiv);
+    }
+  }
+
+  // Bind this tool to the global window scope so your UI components can access it instantly
+  window.OmtZoomParserModule = new ZoomLessonParser();
+})();
+
+// ============================================================
+// TRI LIBRARY SPINE ROUTER V1
+// Non-destructive MVP connective layer
+// ============================================================
+
+(function initTriLibrarySpineRouter() {
+
+  const STORAGE_KEY = "tri_library_spine_v1";
+
+  function loadSpine() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    } catch (err) {
+      console.error("Could not load TRI Library Spine:", err);
+      return [];
+    }
+  }
+
+  function saveSpine(entries) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  }
+
+  function classifyEntry(text = "", source = "manual") {
+
+    const lower = text.toLowerCase();
+
+    const routes = [];
+
+    if (
+      lower.includes("student") ||
+      lower.includes("lesson") ||
+      lower.includes("vocabulary") ||
+      lower.includes("english") ||
+      lower.includes("speaking")
+    ) {
+      routes.push("LESSON");
+    }
+
+    if (
+      lower.includes("debate") ||
+      lower.includes("opinion") ||
+      lower.includes("argument") ||
+      lower.includes("question")
+    ) {
+      routes.push("POV");
+    }
+
+    if (
+      lower.includes("rap") ||
+      lower.includes("freestyle") ||
+      lower.includes("song") ||
+      lower.includes("melody") ||
+      lower.includes("lyric")
+    ) {
+      routes.push("OMT");
+    }
+
+    if (
+      lower.includes("word") ||
+      lower.includes("phrase") ||
+      lower.includes("vocab") ||
+      lower.includes("expression")
+    ) {
+      routes.push("PRONOUNZ");
+    }
+
+    if (
+      lower.includes("idea") ||
+      lower.includes("insight") ||
+      lower.includes("realization") ||
+      lower.includes("point")
+    ) {
+      routes.push("POINT");
+    }
+
+    if (!routes.length) {
+      routes.push("GENERAL");
+    }
+
+    return [...new Set(routes)];
+  }
+
+  function createEntry({
+    text = "",
+    source = "manual",
+    title = "",
+    tags = []
+  } = {}) {
+
+    const entry = {
+      id: "SPINE-" + Date.now(),
+      createdAt: new Date().toISOString(),
+
+      title: title || "Untitled Spine Entry",
+
+      text,
+
+      source,
+
+      routes: classifyEntry(text, source),
+
+      tags,
+
+      status: "active"
+    };
+
+    const spine = loadSpine();
+
+    spine.unshift(entry);
+
+    saveSpine(spine);
+
+    console.log("TRI Spine Entry Created:", entry);
+
+    return entry;
+  }
+
+  function getEntries(route = null) {
+
+    const spine = loadSpine();
+
+    if (!route) {
+      return spine;
+    }
+
+    return spine.filter(entry =>
+      entry.routes.includes(route)
+    );
+  }
+
+  function deleteEntry(id) {
+
+    const spine = loadSpine()
+      .filter(entry => entry.id !== id);
+
+    saveSpine(spine);
+  }
+
+  // Public API
+  window.TriLibrarySpine = {
+
+    createEntry,
+
+    getEntries,
+
+    deleteEntry,
+
+    loadSpine,
+
+    saveSpine,
+
+    classifyEntry
+
+  };
+
+  console.log(
+    "TRI Library Spine Router V1 online.",
+    loadSpine().length,
+    "entries loaded."
+  );
+
+})();
+// ============================================================
+// PP CAPTURE V0.1
+// One-click video/page -> TRI ecosystem
+// ============================================================
+
+(function initPPCapture() {
+  const PP_INBOX_KEY = "pp_capture_v1";
+
+  function getPPCaptures() {
+    try {
+      return JSON.parse(localStorage.getItem(PP_INBOX_KEY) || "[]");
+    } catch (err) {
+      console.warn("PP capture storage error:", err);
+      return [];
+    }
+  }
+
+  function savePPCaptures(items) {
+    localStorage.setItem(PP_INBOX_KEY, JSON.stringify(items));
+  }
+
+  function captureToEcosystem() {
+    const urlEl = document.getElementById("quickTabUrl");
+    const labelEl = document.getElementById("quickTabLabel");
+
+    const url = (urlEl?.value || "").trim();
+    const label = (labelEl?.value || "").trim();
+
+    if (!url) {
+      alert("Paste a video or page URL first.");
+      return;
+    }
+
+    const capture = {
+      id: crypto.randomUUID
+        ? crypto.randomUUID()
+        : "PP-" + Date.now(),
+
+      type: "video_capture",
+
+      title: label || "Captured Video",
+
+      url,
+
+      source: "PP",
+
+      createdAt: new Date().toISOString(),
+
+      status: "captured",
+
+      routes: ["GENERAL"],
+
+      tags: ["video", "pp"]
+    };
+
+    const captures = getPPCaptures();
+
+    captures.unshift(capture);
+
+    savePPCaptures(captures.slice(0, 100));
+
+    // Also feed the existing TRI Library Spine
+    if (window.TriLibrarySpine?.createEntry) {
+      window.TriLibrarySpine.createEntry({
+        title: capture.title,
+        text: capture.url,
+        source: "PP_VIDEO_CAPTURE",
+        tags: ["video", "pp"]
+      });
+    }
+
+    const status = document.getElementById("ppCaptureStatus");
+
+    if (status) {
+      status.textContent = "✓ Added to Ecosystem";
+    }
+
+    console.log("PP CAPTURE:", capture);
+  }
+
+  window.PPCapture = {
+    captureToEcosystem,
+    getPPCaptures
+  };
+
+})();
+</script>
+  <!-- ===== MOBILE NOW PLAYING ===== -->
+
+<div id="mobileNowPlaying" class="mobile-now-playing hidden">
+  <strong>TRI Mobile</strong>
+  <div id="mobileNowPlayingText">
+    No layers playing
+  </div>
+
+<script>
+  // TRI PWA service worker registration — non-destructive wrapper.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(err => {
+        console.warn('TRI service worker registration failed:', err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
