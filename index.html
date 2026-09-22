@@ -1,0 +1,3246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <meta name="theme-color" content="#0b1020">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="manifest" href="manifest.webmanifest">
+
+  <title>TRI — Focus & Recording Companion</title>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a2b;
+      --panel2: #182238;
+      --border: #2b3955;
+      --text: #f5f7fb;
+      --muted: #9ba8bd;
+      --accent: #5b8cff;
+      --good: #35c77a;
+      --warn: #f0ad4e;
+      --danger: #ef5b6b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      background: var(--bg);
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        Roboto,
+        Arial,
+        sans-serif;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 44px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: var(--panel2);
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 600;
+      touch-action: manipulation;
+    }
+
+    button:active {
+      transform: scale(.98);
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    button.good {
+      background: var(--good);
+      border-color: var(--good);
+      color: #06140d;
+    }
+
+    button.danger {
+      background: var(--danger);
+      border-color: var(--danger);
+      color: white;
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0d1527;
+      color: var(--text);
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    input[type="range"] {
+      padding: 0;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding:
+        max(16px, env(safe-area-inset-top))
+        16px
+        max(24px, env(safe-area-inset-bottom));
+    }
+
+    .header {
+      padding: 12px 0 18px;
+    }
+
+    .title {
+      font-size: 1.6rem;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: .78rem;
+      color: var(--muted);
+      background: var(--panel);
+    }
+
+    .status.ready {
+      color: var(--good);
+    }
+
+    .status.warning {
+      color: var(--warn);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    @media (max-width: 760px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 15px;
+      margin-bottom: 14px;
+    }
+
+    .panel-title {
+      font-size: 1rem;
+      font-weight: 750;
+      margin-bottom: 12px;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      align-items: center;
+    }
+
+    .field {
+      flex: 1;
+      min-width: 150px;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: .8rem;
+    }
+
+    .layer {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #0f1729;
+    }
+
+    .layer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .layer-name {
+      font-weight: 750;
+    }
+
+    .layer-status {
+      color: var(--muted);
+      font-size: .75rem;
+    }
+
+    .layer-controls {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    @media (max-width: 500px) {
+      .layer-controls {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .record-box {
+      text-align: center;
+      padding: 18px 10px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      background: #0d1527;
+    }
+
+    .record-time {
+      font-size: 2rem;
+      font-variant-numeric: tabular-nums;
+      margin: 8px 0 14px;
+      font-weight: 800;
+    }
+
+    .record-indicator {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #555;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .record-indicator.active {
+      background: var(--danger);
+      box-shadow: 0 0 14px rgba(239,91,107,.8);
+    }
+
+    .mic-meter {
+      height: 12px;
+      border-radius: 999px;
+      background: #090f1c;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      margin: 10px 0;
+    }
+
+    .mic-meter-fill {
+      width: 0%;
+      height: 100%;
+      background: var(--good);
+      transition: width .05s linear;
+    }
+
+    .diagnostic {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .85rem;
+    }
+
+    .diagnostic:last-child {
+      border-bottom: 0;
+    }
+
+    .diag-ok {
+      color: var(--good);
+    }
+
+    .diag-bad {
+      color: var(--danger);
+    }
+
+    .diag-warn {
+      color: var(--warn);
+    }
+
+    .recording-card {
+      border: 1px solid var(--border);
+      background: #0e1628;
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .recording-card audio {
+      width: 100%;
+      margin: 8px 0;
+    }
+
+    .small {
+      font-size: .76rem;
+      color: var(--muted);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .notice {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #101a30;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .82rem;
+      margin-top: 10px;
+    }
+
+    .file-input {
+      display: none;
+    }
+
+    .file-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel2);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: .72rem;
+      padding: 20px 0;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <header class="header">
+    <div class="title">TRI</div>
+    <div class="subtitle">
+      Focus + Recording Companion
+    </div>
+  </header>
+
+  <!-- SYSTEM STATUS -->
+
+  <div class="status-bar">
+    <div id="pwaStatus" class="status">● PWA checking</div>
+    <div id="audioStatus" class="status">● Audio engine waiting</div>
+    <div id="micStatus" class="status">● Microphone waiting</div>
+    <div id="storageStatus" class="status">● Storage checking</div>
+  </div>
+
+  <!-- BASIC SESSION -->
+
+  <section class="panel">
+
+    <div class="panel-title">
+      Session
+    </div>
+
+    <div class="grid">
+
+      <div class="field">
+        <label for="mode">
+          Mode
+        </label>
+
+        <select id="mode">
+          <option>Rap freestyle</option>
+          <option>Singing / melody freestyle</option>
+          <option>Free freestyle</option>
+          <option>Spoken word / recording blog</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="function">
+          Function
+        </label>
+
+        <select id="function">
+          <option>Power</option>
+          <option>Focus</option>
+          <option>Emotion</option>
+          <option>Flow</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="topic">
+          Topic / intention
+        </label>
+
+        <input
+          id="topic"
+          type="text"
+          placeholder="Clarity, healing, abundance..."
+        >
+      </div>
+
+      <div class="field">
+        <label for="style">
+          Style
+        </label>
+
+        <select id="style">
+          <option>Chill</option>
+          <option>Hard</option>
+          <option>Inspirational</option>
+          <option>Motivational</option>
+          <option>Dark</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="element">
+          Element
+        </label>
+
+        <select id="element">
+          <option>Water</option>
+          <option>Fire</option>
+          <option>Earth</option>
+          <option>Air</option>
+        </select>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- AUDIO ENGINE -->
+
+  <section class="panel">
+
+    <div class="panel-title">
+      Audio Layers
+    </div>
+
+    <div class="notice">
+      Load audio into any layer. TRI uses one shared audio engine so
+      playback and recording can operate together.
+    </div>
+
+    <!-- LAYER A -->
+
+    <div class="layer">
+
+      <div class="layer-head">
+        <span class="layer-name">Layer A</span>
+        <span id="layerAStatus" class="layer-status">
+          Empty
+        </span>
+      </div>
+
+      <div class="layer-controls">
+
+        <input
+          id="fileA"
+          class="file-input"
+          type="file"
+          accept="audio/*"
+        >
+
+        <label class="file-label" for="fileA">
+          Load Audio
+        </label>
+
+        <button id="playA">
+          Play
+        </button>
+
+        <button id="stopA">
+          Stop
+        </button>
+
+      </div>
+
+      <div style="margin-top:10px;">
+        <label class="small">Volume</label>
+        <input
+          id="volumeA"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0.8"
+        >
+      </div>
+
+    </div>
+
+    <!-- LAYER B -->
+
+    <div class="layer">
+
+      <div class="layer-head">
+        <span class="layer-name">Layer B</span>
+        <span id="layerBStatus" class="layer-status">
+          Empty
+        </span>
+      </div>
+
+      <div class="layer-controls">
+
+        <input
+          id="fileB"
+          class="file-input"
+          type="file"
+          accept="audio/*"
+        >
+
+        <label class="file-label" for="fileB">
+          Load Audio
+        </label>
+
+        <button id="playB">
+          Play
+        </button>
+
+        <button id="stopB">
+          Stop
+        </button>
+
+      </div>
+
+      <div style="margin-top:10px;">
+        <label class="small">Volume</label>
+        <input
+          id="volumeB"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0.8"
+        >
+      </div>
+
+    </div>
+
+    <!-- LAYER C -->
+
+    <div class="layer">
+
+      <div class="layer-head">
+        <span class="layer-name">Layer C</span>
+        <span id="layerCStatus" class="layer-status">
+          Empty
+        </span>
+      </div>
+
+      <div class="layer-controls">
+
+        <input
+          id="fileC"
+          class="file-input"
+          type="file"
+          accept="audio/*"
+        >
+
+        <label class="file-label" for="fileC">
+          Load Audio
+        </label>
+
+        <button id="playC">
+          Play
+        </button>
+
+        <button id="stopC">
+          Stop
+        </button>
+
+      </div>
+
+      <div style="margin-top:10px;">
+        <label class="small">Volume</label>
+        <input
+          id="volumeC"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0.8"
+        >
+      </div>
+
+    </div>
+
+    <!-- LAYER D -->
+
+    <div class="layer">
+
+      <div class="layer-head">
+        <span class="layer-name">Layer D</span>
+        <span id="layerDStatus" class="layer-status">
+          Empty
+        </span>
+      </div>
+
+      <div class="layer-controls">
+
+        <input
+          id="fileD"
+          class="file-input"
+          type="file"
+          accept="audio/*"
+        >
+
+        <label class="file-label" for="fileD">
+          Load Audio
+        </label>
+
+        <button id="playD">
+          Play
+        </button>
+
+        <button id="stopD">
+          Stop
+        </button>
+
+      </div>
+
+      <div style="margin-top:10px;">
+        <label class="small">Volume</label>
+        <input
+          id="volumeD"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="0.8"
+        >
+      </div>
+
+    </div>
+
+    <div style="margin-top:12px;">
+
+      <label class="small">
+        Master Volume
+      </label>
+
+      <input
+        id="masterVolume"
+        type="range"
+        min="0"
+        max="1"
+        step="0.01"
+        value="0.8"
+      >
+
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+
+      <button id="playAll" class="primary">
+        ▶ Play Layers
+      </button>
+
+      <button id="stopAll">
+        ■ Stop Layers
+      </button>
+
+    </div>
+
+  </section>
+
+  <!-- MICROPHONE -->
+
+  <section class="panel">
+
+    <div class="panel-title">
+      Microphone
+    </div>
+
+    <div class="row">
+
+      <button id="enableMic" class="primary">
+        Enable Microphone
+      </button>
+
+      <button id="disableMic">
+        Disable Microphone
+      </button>
+
+    </div>
+
+    <div class="notice">
+      TRI does <strong>not</strong> send the microphone back to the
+      speakers by default. This is intentional to reduce feedback and
+      headphone problems.
+    </div>
+
+    <div style="margin-top:12px;">
+
+      <label class="small">
+        Microphone level
+      </label>
+
+      <div class="mic-meter">
+        <div
+          id="micMeter"
+          class="mic-meter-fill">
+        </div>
+      </div>
+
+    </div>
+
+    <div class="row">
+
+      <label style="display:flex;align-items:center;gap:8px;">
+
+        <input
+          id="monitorMic"
+          type="checkbox"
+        >
+
+        Monitor microphone
+        <span class="small">
+          (headphones recommended)
+        </span>
+
+      </label>
+
+    </div>
+
+  </section>
+
+  <!-- RECORDING -->
+
+  <section class="panel">
+
+    <div class="panel-title">
+      Recording
+    </div>
+
+    <div class="record-box">
+
+      <div>
+        <span
+          id="recordIndicator"
+          class="record-indicator">
+        </span>
+
+        <span id="recordState">
+          Ready
+        </span>
+      </div>
+
+      <div
+        id="recordTime"
+        class="record-time">
+        00:00
+      </div>
+
+      <div class="row" style="justify-content:center;">
+
+        <button
+          id="startRecording"
+          class="good">
+          ● Record
+        </button>
+
+        <button
+          id="stopRecording"
+          class="danger"
+          disabled>
+          ■ Stop Recording
+        </button>
+
+      </div>
+
+    </div>
+
+    <div
+      id="recordNotice"
+      class="notice">
+      Recording will contain the microphone plus the currently routed
+      TRI audio layers.
+    </div>
+
+  </section>
+
+  <!-- SAVE INFORMATION -->
+
+  <section class="panel">
+
+    <div class="panel-title">
+      Save Session
+    </div>
+
+    <div class="field">
+
+      <label for="recordingTitle">
+        Recording name
+      </label>
+
+      <input
+        id="recordingTitle"
+        type="text"
+        placeholder="My TRI session"
+      >
+
+    </div>
+
+    <div class="field" style="margin-top:10px;">
+
+      <label for="recordingNotes">
+        Notes
+      </label>
+
+      <textarea
+        id="recordingNotes"
+        placeholder="What happened during this session?">
+      </textarea>
+
+    </div>
+
+  </section>
+
+  <!-- DIAGNOSTICS -->
+
+  <section class="panel">
+
+    <div class="panel-title">
+      TRI System Diagnostics
+    </div>
+
+    <div class="diagnostic">
+      <span>PWA</span>
+      <strong id="diagPwa">Checking</strong>
+    </div>
+
+    <div class="diagnostic">
+      <span>AudioContext</span>
+      <strong id="diagAudio">Checking</strong>
+    </div>
+
+    <div class="diagnostic">
+      <span>Microphone</span>
+      <strong id="diagMic">Checking</strong>
+    </div>
+
+    <div class="diagnostic">
+      <span>Layer A</span>
+      <strong id="diagA">Empty</strong>
+    </div>
+
+    <div class="diagnostic">
+      <span>Layer B</span>
+      <strong id="diagB">Empty</strong>
+    </div>
+
+    <div class="diagnostic">
+      <span>Layer C</span>
+      <strong id="diagC">Empty</strong>
+    </div>
+
+    <div class="diagnostic">
+      <span>Layer D</span>
+      <strong id="diagD">Empty</strong>
+    </div>
+
+    <div class="diagnostic">
+      <span>MediaRecorder</span>
+      <strong id="diagRecorder">Checking</strong>
+    </div>
+
+    <div class="diagnostic">
+      <span>IndexedDB</span>
+      <strong id="diagStorage">Checking</strong>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+
+      <button id="runDiagnostics">
+        Run Full Test
+      </button>
+
+    </div>
+
+  </section>
+
+  <!-- SAVED RECORDINGS -->
+
+  <section class="panel">
+
+    <div class="panel-title">
+      Saved TRI Recordings
+    </div>
+
+    <div
+      id="recordingsList">
+      <div class="small">
+        No recordings saved yet.
+      </div>
+    </div>
+
+  </section>
+
+  <footer class="footer">
+    TRI V1.6 Field Mode — stabilization build
+  </footer>
+
+</div>
+
+
+<script>
+/* =========================================================
+   TRI AUDIO ENGINE
+   One AudioContext
+   Four layers
+   Microphone
+   Mixed recording
+   ========================================================= */
+
+(() => {
+
+  "use strict";
+
+  /* -------------------------------------------------------
+     STATE
+     ------------------------------------------------------- */
+
+  const state = {
+
+    audioContext: null,
+
+    masterGain: null,
+
+    recordingDestination: null,
+
+    micStream: null,
+
+    micSource: null,
+
+    micGain: null,
+
+    micAnalyser: null,
+
+    micMonitorGain: null,
+
+    recorder: null,
+
+    recordingChunks: [],
+
+    recordingStartedAt: null,
+
+    recordingTimer: null,
+
+    currentBlob: null,
+
+    currentRecordingUrl: null,
+
+    layers: {
+
+      A: {
+        audio: null,
+        source: null,
+        gain: null,
+        loaded: false,
+        objectUrl: null
+      },
+
+      B: {
+        audio: null,
+        source: null,
+        gain: null,
+        loaded: false,
+        objectUrl: null
+      },
+
+      C: {
+        audio: null,
+        source: null,
+        gain: null,
+        loaded: false,
+        objectUrl: null
+      },
+
+      D: {
+        audio: null,
+        source: null,
+        gain: null,
+        loaded: false,
+        objectUrl: null
+      }
+
+    }
+
+  };
+
+
+  /* -------------------------------------------------------
+     HELPERS
+     ------------------------------------------------------- */
+
+  function $(id) {
+    return document.getElementById(id);
+  }
+
+
+  function setStatus(id, text, type = "") {
+
+    const el = $(id);
+
+    if (!el) return;
+
+    el.textContent = "● " + text;
+
+    el.classList.remove(
+      "ready",
+      "warning",
+      "error"
+    );
+
+    if (type) {
+      el.classList.add(type);
+    }
+
+  }
+
+
+  function setDiagnostic(id, text, type = "") {
+
+    const el = $(id);
+
+    if (!el) return;
+
+    el.textContent = text;
+
+    el.classList.remove(
+      "diag-ok",
+      "diag-bad",
+      "diag-warn"
+    );
+
+    if (type === "ok") {
+      el.classList.add("diag-ok");
+    }
+
+    if (type === "bad") {
+      el.classList.add("diag-bad");
+    }
+
+    if (type === "warn") {
+      el.classList.add("diag-warn");
+    }
+
+  }
+
+
+  function makeId() {
+
+    if (
+      window.crypto &&
+      crypto.randomUUID
+    ) {
+      return crypto.randomUUID();
+    }
+
+    return (
+      Date.now().toString(36) +
+      Math.random().toString(36).slice(2)
+    );
+
+  }
+
+
+  function formatTime(seconds) {
+
+    seconds = Math.max(
+      0,
+      Math.floor(seconds)
+    );
+
+    const minutes =
+      Math.floor(seconds / 60);
+
+    const secs =
+      seconds % 60;
+
+    return (
+      String(minutes).padStart(2, "0") +
+      ":" +
+      String(secs).padStart(2, "0")
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     AUDIO CONTEXT
+     ------------------------------------------------------- */
+
+  function ensureAudioContext() {
+
+    if (!state.audioContext) {
+
+      const AudioContextClass =
+        window.AudioContext ||
+        window.webkitAudioContext;
+
+      if (!AudioContextClass) {
+        throw new Error(
+          "Web Audio API is not supported."
+        );
+      }
+
+      state.audioContext =
+        new AudioContextClass();
+
+      state.masterGain =
+        state.audioContext.createGain();
+
+      state.masterGain.gain.value =
+        Number($("masterVolume").value);
+
+      state.recordingDestination =
+        state.audioContext
+          .createMediaStreamDestination();
+
+      /*
+        IMPORTANT:
+
+        masterGain -> speakers
+        masterGain -> recording destination
+
+        This means the layers heard by the user
+        are also available to the recorder.
+      */
+
+      state.masterGain.connect(
+        state.audioContext.destination
+      );
+
+      state.masterGain.connect(
+        state.recordingDestination
+      );
+
+      setStatus(
+        "audioStatus",
+        "Audio engine ready",
+        "ready"
+      );
+
+      setDiagnostic(
+        "diagAudio",
+        "Ready",
+        "ok"
+      );
+
+    }
+
+    if (
+      state.audioContext.state === "suspended"
+    ) {
+
+      state.audioContext.resume();
+
+    }
+
+    return state.audioContext;
+
+  }
+
+
+  /* -------------------------------------------------------
+     LAYERS
+     ------------------------------------------------------- */
+
+  function setupLayer(name) {
+
+    const layer =
+      state.layers[name];
+
+    if (!layer) return;
+
+    ensureAudioContext();
+
+    if (layer.audio) {
+      return;
+    }
+
+    const audio =
+      document.createElement("audio");
+
+    audio.preload = "auto";
+
+    /*
+      Do NOT autoplay.
+
+      The user must initiate playback.
+      This matters especially on mobile Safari.
+    */
+
+    const source =
+      state.audioContext
+        .createMediaElementSource(audio);
+
+    const gain =
+      state.audioContext
+        .createGain();
+
+    gain.gain.value =
+      Number(
+        $("volume" + name).value
+      );
+
+    /*
+      Layer route:
+
+      audio
+        ↓
+      source
+        ↓
+      gain
+        ↓
+      master
+        ↓
+      speakers + recorder
+    */
+
+    source.connect(gain);
+
+    gain.connect(
+      state.masterGain
+    );
+
+    layer.audio = audio;
+    layer.source = source;
+    layer.gain = gain;
+
+    audio.addEventListener(
+      "ended",
+      () => {
+
+        const status =
+          $("layer" + name + "Status");
+
+        if (status) {
+          status.textContent =
+            "Finished";
+        }
+
+      }
+    );
+
+  }
+
+
+  async function loadLayer(
+    name,
+    file
+  ) {
+
+    if (!file) return;
+
+    try {
+
+      setupLayer(name);
+
+      const layer =
+        state.layers[name];
+
+      if (layer.objectUrl) {
+
+        URL.revokeObjectURL(
+          layer.objectUrl
+        );
+
+      }
+
+      const url =
+        URL.createObjectURL(file);
+
+      layer.objectUrl = url;
+
+      layer.audio.src = url;
+
+      layer.audio.load();
+
+      layer.loaded = true;
+
+      $("layer" + name + "Status")
+        .textContent =
+        file.name;
+
+      setDiagnostic(
+        "diag" + name,
+        "Ready",
+        "ok"
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Layer load error",
+        name,
+        error
+      );
+
+      $("layer" + name + "Status")
+        .textContent =
+        "Error";
+
+      setDiagnostic(
+        "diag" + name,
+        "Error",
+        "bad"
+      );
+
+    }
+
+  }
+
+
+  function playLayer(name) {
+
+    const layer =
+      state.layers[name];
+
+    if (!layer || !layer.audio) {
+      return;
+    }
+
+    ensureAudioContext();
+
+    state.audioContext.resume();
+
+    layer.audio.play()
+      .catch(error => {
+
+        console.error(
+          "Playback error",
+          error
+        );
+
+        $("layer" + name + "Status")
+          .textContent =
+          "Playback blocked";
+
+      });
+
+  }
+
+
+  function stopLayer(name) {
+
+    const layer =
+      state.layers[name];
+
+    if (!layer || !layer.audio) {
+      return;
+    }
+
+    layer.audio.pause();
+
+    try {
+      layer.audio.currentTime = 0;
+    } catch (error) {}
+
+  }
+
+
+  function playAll() {
+
+    ensureAudioContext();
+
+    Object.keys(
+      state.layers
+    ).forEach(name => {
+
+      const layer =
+        state.layers[name];
+
+      if (
+        layer.loaded &&
+        layer.audio
+      ) {
+
+        layer.audio.play()
+          .catch(error => {
+            console.warn(
+              "Could not play",
+              name,
+              error
+            );
+          });
+
+      }
+
+    });
+
+  }
+
+
+  function stopAll() {
+
+    Object.keys(
+      state.layers
+    ).forEach(
+      stopLayer
+    );
+
+  }
+
+
+  /* -------------------------------------------------------
+     MASTER / LAYER VOLUME
+     ------------------------------------------------------- */
+
+  $("masterVolume")
+    .addEventListener(
+      "input",
+      event => {
+
+        if (
+          state.masterGain
+        ) {
+
+          state.masterGain.gain.value =
+            Number(
+              event.target.value
+            );
+
+        }
+
+      }
+    );
+
+
+  ["A", "B", "C", "D"]
+    .forEach(name => {
+
+      $("volume" + name)
+        .addEventListener(
+          "input",
+          event => {
+
+            const layer =
+              state.layers[name];
+
+            if (layer.gain) {
+
+              layer.gain.gain.value =
+                Number(
+                  event.target.value
+                );
+
+            }
+
+          }
+        );
+
+    });
+
+
+  /* -------------------------------------------------------
+     MICROPHONE
+     ------------------------------------------------------- */
+
+  async function enableMicrophone() {
+
+    if (
+      !navigator.mediaDevices ||
+      !navigator.mediaDevices.getUserMedia
+    ) {
+
+      setStatus(
+        "micStatus",
+        "Microphone unavailable",
+        "error"
+      );
+
+      setDiagnostic(
+        "diagMic",
+        "Unavailable",
+        "bad"
+      );
+
+      throw new Error(
+        "getUserMedia is unavailable."
+      );
+
+    }
+
+    ensureAudioContext();
+
+    if (state.micStream) {
+
+      return;
+
+    }
+
+    /*
+      Music/creative recording settings.
+
+      We intentionally avoid aggressive browser
+      processing because it can damage singing,
+      rap, freestyle and musical material.
+    */
+
+    const stream =
+      await navigator.mediaDevices
+        .getUserMedia({
+
+          audio: {
+
+            echoCancellation: false,
+
+            noiseSuppression: false,
+
+            autoGainControl: false
+
+          },
+
+          video: false
+
+        });
+
+
+    state.micStream = stream;
+
+
+    state.micSource =
+      state.audioContext
+        .createMediaStreamSource(
+          stream
+        );
+
+
+    state.micGain =
+      state.audioContext
+        .createGain();
+
+
+    state.micGain.gain.value = 1;
+
+
+    /*
+      IMPORTANT:
+
+      Mic goes to recording destination.
+
+      Mic does NOT automatically go to speakers.
+    */
+
+    state.micSource.connect(
+      state.micGain
+    );
+
+    state.micGain.connect(
+      state.recordingDestination
+    );
+
+
+    /*
+      Separate analyser for the visual meter.
+    */
+
+    state.micAnalyser =
+      state.audioContext
+        .createAnalyser();
+
+    state.micAnalyser.fftSize = 256;
+
+    state.micSource.connect(
+      state.micAnalyser
+    );
+
+
+    /*
+      Optional monitoring.
+
+      OFF by default.
+    */
+
+    state.micMonitorGain =
+      state.audioContext
+        .createGain();
+
+    state.micMonitorGain.gain.value =
+      $("monitorMic").checked
+        ? 1
+        : 0;
+
+    state.micSource.connect(
+      state.micMonitorGain
+    );
+
+    state.micMonitorGain.connect(
+      state.audioContext.destination
+    );
+
+
+    setStatus(
+      "micStatus",
+      "Microphone ready",
+      "ready"
+    );
+
+    setDiagnostic(
+      "diagMic",
+      "Ready",
+      "ok"
+    );
+
+    startMicMeter();
+
+  }
+
+
+  function disableMicrophone() {
+
+    if (state.micStream) {
+
+      state.micStream
+        .getTracks()
+        .forEach(
+          track => track.stop()
+        );
+
+    }
+
+    state.micStream = null;
+
+    state.micSource = null;
+
+    state.micGain = null;
+
+    state.micAnalyser = null;
+
+    state.micMonitorGain = null;
+
+    $("micMeter").style.width =
+      "0%";
+
+    setStatus(
+      "micStatus",
+      "Microphone disabled"
+    );
+
+    setDiagnostic(
+      "diagMic",
+      "Disabled",
+      "warn"
+    );
+
+  }
+
+
+  $("monitorMic")
+    .addEventListener(
+      "change",
+      event => {
+
+        if (
+          state.micMonitorGain
+        ) {
+
+          state.micMonitorGain.gain.value =
+            event.target.checked
+              ? 1
+              : 0;
+
+        }
+
+      }
+    );
+
+
+  $("enableMic")
+    .addEventListener(
+      "click",
+      async () => {
+
+        try {
+
+          await enableMicrophone();
+
+        } catch (error) {
+
+          console.error(error);
+
+          setStatus(
+            "micStatus",
+            "Microphone permission failed",
+            "error"
+          );
+
+          setDiagnostic(
+            "diagMic",
+            "Permission failed",
+            "bad"
+          );
+
+          alert(
+            "TRI could not access the microphone. Check the browser microphone permission and try again."
+          );
+
+        }
+
+      }
+    );
+
+
+  $("disableMic")
+    .addEventListener(
+      "click",
+      disableMicrophone
+    );
+
+
+  /* -------------------------------------------------------
+     MIC METER
+     ------------------------------------------------------- */
+
+  function startMicMeter() {
+
+    if (
+      !state.micAnalyser
+    ) {
+      return;
+    }
+
+    const analyser =
+      state.micAnalyser;
+
+    const data =
+      new Uint8Array(
+        analyser.fftSize
+      );
+
+
+    function draw() {
+
+      if (
+        !state.micAnalyser
+      ) {
+        $("micMeter")
+          .style.width =
+          "0%";
+
+        return;
+      }
+
+      analyser.getByteTimeDomainData(
+        data
+      );
+
+      let sum = 0;
+
+      for (
+        let i = 0;
+        i < data.length;
+        i++
+      ) {
+
+        const value =
+          (data[i] - 128) / 128;
+
+        sum += value * value;
+
+      }
+
+      const rms =
+        Math.sqrt(
+          sum / data.length
+        );
+
+      const level =
+        Math.min(
+          100,
+          Math.round(
+            rms * 220
+          )
+        );
+
+      $("micMeter")
+        .style.width =
+        level + "%";
+
+      requestAnimationFrame(
+        draw
+      );
+
+    }
+
+    draw();
+
+  }
+
+
+  /* -------------------------------------------------------
+     MEDIA RECORDER
+     ------------------------------------------------------- */
+
+  function getRecorderMimeType() {
+
+    if (
+      !window.MediaRecorder
+    ) {
+      return "";
+    }
+
+    const types = [
+
+      "audio/webm;codecs=opus",
+
+      "audio/webm",
+
+      "audio/mp4",
+
+      "audio/ogg;codecs=opus"
+
+    ];
+
+    for (
+      const type of types
+    ) {
+
+      try {
+
+        if (
+          MediaRecorder
+            .isTypeSupported(type)
+        ) {
+
+          return type;
+
+        }
+
+      } catch (error) {}
+
+    }
+
+    return "";
+
+  }
+
+
+  async function startRecording() {
+
+    ensureAudioContext();
+
+    /*
+      We require the microphone to be explicitly
+      enabled before recording.
+
+      This avoids mysterious silent recordings.
+    */
+
+    if (!state.micStream) {
+
+      try {
+
+        await enableMicrophone();
+
+      } catch (error) {
+
+        alert(
+          "Enable the microphone before recording."
+        );
+
+        return;
+
+      }
+
+    }
+
+
+    if (
+      !window.MediaRecorder
+    ) {
+
+      alert(
+        "This browser does not provide MediaRecorder."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      state.recorder &&
+      state.recorder.state === "recording"
+    ) {
+
+      return;
+
+    }
+
+
+    const stream =
+      state.recordingDestination.stream;
+
+
+    const mimeType =
+      getRecorderMimeType();
+
+
+    let recorder;
+
+    try {
+
+      if (mimeType) {
+
+        recorder =
+          new MediaRecorder(
+            stream,
+            {
+              mimeType
+            }
+          );
+
+      } else {
+
+        recorder =
+          new MediaRecorder(
+            stream
+          );
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "MediaRecorder error",
+        error
+      );
+
+      alert(
+        "TRI could not start the recorder on this browser."
+      );
+
+      return;
+
+    }
+
+
+    state.recordingChunks = [];
+
+    state.recorder = recorder;
+
+
+    recorder.ondataavailable =
+      event => {
+
+        if (
+          event.data &&
+          event.data.size > 0
+        ) {
+
+          state.recordingChunks
+            .push(
+              event.data
+            );
+
+        }
+
+      };
+
+
+    recorder.onerror =
+      event => {
+
+        console.error(
+          "Recorder error",
+          event
+        );
+
+        setStatus(
+          "audioStatus",
+          "Recorder error",
+          "error"
+        );
+
+      };
+
+
+    recorder.onstop =
+      async () => {
+
+        await finishRecording(
+          mimeType ||
+          "audio/webm"
+        );
+
+      };
+
+
+    /*
+      Start in short timeslices.
+
+      This helps prevent losing the entire recording
+      if a mobile browser interrupts the page.
+    */
+
+    recorder.start(1000);
+
+
+    state.recordingStartedAt =
+      Date.now();
+
+
+    $("startRecording")
+      .disabled = true;
+
+    $("stopRecording")
+      .disabled = false;
+
+
+    $("recordState")
+      .textContent =
+      "Recording";
+
+
+    $("recordIndicator")
+      .classList.add(
+        "active"
+      );
+
+
+    setStatus(
+      "audioStatus",
+      "Recording",
+      "ready"
+    );
+
+
+    updateRecordingTimer();
+
+  }
+
+
+  function stopRecording() {
+
+    if (
+      !state.recorder
+    ) {
+      return;
+    }
+
+    if (
+      state.recorder.state !==
+      "recording"
+    ) {
+      return;
+    }
+
+    state.recorder.stop();
+
+  }
+
+
+  async function finishRecording(
+    mimeType
+  ) {
+
+    const blob =
+      new Blob(
+        state.recordingChunks,
+        {
+          type:
+            mimeType ||
+            "audio/webm"
+        }
+      );
+
+
+    state.currentBlob =
+      blob;
+
+
+    if (
+      state.currentRecordingUrl
+    ) {
+
+      URL.revokeObjectURL(
+        state.currentRecordingUrl
+      );
+
+    }
+
+
+    state.currentRecordingUrl =
+      URL.createObjectURL(
+        blob
+      );
+
+
+    $("startRecording")
+      .disabled = false;
+
+    $("stopRecording")
+      .disabled = true;
+
+
+    $("recordState")
+      .textContent =
+      "Recording ready";
+
+
+    $("recordIndicator")
+      .classList.remove(
+        "active"
+      );
+
+
+    clearInterval(
+      state.recordingTimer
+    );
+
+
+    $("recordTime")
+      .textContent =
+      "00:00";
+
+
+    setStatus(
+      "audioStatus",
+      "Recording ready",
+      "ready"
+    );
+
+
+    /*
+      Automatically save to IndexedDB.
+    */
+
+    await saveRecording(
+      blob
+    );
+
+    renderRecordings();
+
+  }
+
+
+  function updateRecordingTimer() {
+
+    clearInterval(
+      state.recordingTimer
+    );
+
+
+    function update() {
+
+      if (
+        !state.recordingStartedAt
+      ) {
+        return;
+      }
+
+      const elapsed =
+        (
+          Date.now() -
+          state.recordingStartedAt
+        ) / 1000;
+
+
+      $("recordTime")
+        .textContent =
+        formatTime(
+          elapsed
+        );
+
+    }
+
+
+    update();
+
+    state.recordingTimer =
+      setInterval(
+        update,
+        250
+      );
+
+  }
+
+
+  $("startRecording")
+    .addEventListener(
+      "click",
+      startRecording
+    );
+
+
+  $("stopRecording")
+    .addEventListener(
+      "click",
+      stopRecording
+    );
+
+
+  /* -------------------------------------------------------
+     INDEXEDDB — LIBRARY SPINE V1
+     ------------------------------------------------------- */
+
+  const DB_NAME =
+    "tri-library-spine-v1";
+
+  const DB_VERSION = 1;
+
+  const STORE =
+    "recordings";
+
+
+  function openDatabase() {
+
+    return new Promise(
+      (resolve, reject) => {
+
+        if (
+          !window.indexedDB
+        ) {
+
+          reject(
+            new Error(
+              "IndexedDB unavailable"
+            )
+          );
+
+          return;
+
+        }
+
+
+        const request =
+          indexedDB.open(
+            DB_NAME,
+            DB_VERSION
+          );
+
+
+        request.onupgradeneeded =
+          event => {
+
+            const db =
+              event.target.result;
+
+            if (
+              !db.objectStoreNames
+                .contains(STORE)
+            ) {
+
+              db.createObjectStore(
+                STORE,
+                {
+                  keyPath: "id"
+                }
+              );
+
+            }
+
+          };
+
+
+        request.onsuccess =
+          () => {
+
+            setDiagnostic(
+              "diagStorage",
+              "Ready",
+              "ok"
+            );
+
+            setStatus(
+              "storageStatus",
+              "Storage ready",
+              "ready"
+            );
+
+            resolve(
+              request.result
+            );
+
+          };
+
+
+        request.onerror =
+          () => {
+
+            setDiagnostic(
+              "diagStorage",
+              "Error",
+              "bad"
+            );
+
+            reject(
+              request.error
+            );
+
+          };
+
+      }
+    );
+
+  }
+
+
+  async function saveRecording(
+    blob
+  ) {
+
+    const db =
+      await openDatabase();
+
+
+    const title =
+      $("recordingTitle")
+        .value
+        .trim() ||
+      (
+        "TRI Session " +
+        new Date()
+          .toLocaleString()
+      );
+
+
+    const item = {
+
+      id: makeId(),
+
+      createdAt:
+        new Date()
+          .toISOString(),
+
+      type:
+        "tri-session",
+
+      duration:
+        state.recordingStartedAt
+          ? Date.now() -
+            state.recordingStartedAt
+          : 0,
+
+      microphone: true,
+
+      layers:
+        Object.keys(
+          state.layers
+        ).filter(
+          name =>
+            state.layers[name]
+              .loaded
+        ),
+
+      audioBlob:
+        blob,
+
+      mimeType:
+        blob.type,
+
+      title,
+
+      notes:
+        $("recordingNotes")
+          .value
+          .trim(),
+
+      prompt:
+        $("topic")
+          .value
+          .trim(),
+
+      mode:
+        $("mode")
+          .value,
+
+      function:
+        $("function")
+          .value,
+
+      style:
+        $("style")
+          .value,
+
+      element:
+        $("element")
+          .value,
+
+      routes: []
+
+    };
+
+
+    await new Promise(
+      (resolve, reject) => {
+
+        const transaction =
+          db.transaction(
+            STORE,
+            "readwrite"
+          );
+
+        const store =
+          transaction.objectStore(
+            STORE
+          );
+
+        const request =
+          store.put(
+            item
+          );
+
+
+        request.onsuccess =
+          () => resolve();
+
+
+        request.onerror =
+          () => reject(
+            request.error
+          );
+
+      }
+    );
+
+
+    db.close();
+
+
+    setStatus(
+      "storageStatus",
+      "Recording saved",
+      "ready"
+    );
+
+  }
+
+
+  async function getAllRecordings() {
+
+    const db =
+      await openDatabase();
+
+
+    const results =
+      await new Promise(
+        (resolve, reject) => {
+
+          const transaction =
+            db.transaction(
+              STORE,
+              "readonly"
+            );
+
+          const store =
+            transaction.objectStore(
+              STORE
+            );
+
+          const request =
+            store.getAll();
+
+
+          request.onsuccess =
+            () => resolve(
+              request.result || []
+            );
+
+
+          request.onerror =
+            () => reject(
+              request.error
+            );
+
+        }
+      );
+
+
+    db.close();
+
+
+    results.sort(
+      (
+        a,
+        b
+      ) =>
+        new Date(b.createdAt) -
+        new Date(a.createdAt)
+    );
+
+
+    return results;
+
+  }
+
+
+  async function deleteRecording(
+    id
+  ) {
+
+    const db =
+      await openDatabase();
+
+
+    await new Promise(
+      (resolve, reject) => {
+
+        const transaction =
+          db.transaction(
+            STORE,
+            "readwrite"
+          );
+
+        const store =
+          transaction.objectStore(
+            STORE
+          );
+
+        const request =
+          store.delete(
+            id
+          );
+
+        request.onsuccess =
+          () => resolve();
+
+        request.onerror =
+          () => reject(
+            request.error
+          );
+
+      }
+    );
+
+
+    db.close();
+
+    renderRecordings();
+
+  }
+
+
+  /* -------------------------------------------------------
+     RECORDING LIST
+     ------------------------------------------------------- */
+
+  async function renderRecordings() {
+
+    const list =
+      $("recordingsList");
+
+    if (!list) return;
+
+
+    try {
+
+      const recordings =
+        await getAllRecordings();
+
+
+      if (
+        !recordings.length
+      ) {
+
+        list.innerHTML =
+          `
+            <div class="small">
+              No recordings saved yet.
+            </div>
+          `;
+
+        return;
+
+      }
+
+
+      list.innerHTML = "";
+
+
+      recordings.forEach(
+        recording => {
+
+          const card =
+            document.createElement(
+              "div"
+            );
+
+          card.className =
+            "recording-card";
+
+
+          const date =
+            new Date(
+              recording.createdAt
+            )
+              .toLocaleString();
+
+
+          const audio =
+            document.createElement(
+              "audio"
+            );
+
+          audio.controls = true;
+
+          audio.src =
+            URL.createObjectURL(
+              recording.audioBlob
+            );
+
+
+          const title =
+            document.createElement(
+              "strong"
+            );
+
+          title.textContent =
+            recording.title;
+
+
+          const meta =
+            document.createElement(
+              "div"
+            );
+
+          meta.className =
+            "small";
+
+          meta.textContent =
+            date +
+            " • " +
+            (
+              recording.layers || []
+            ).join(", ") +
+            " + Mic";
+
+
+          const download =
+            document.createElement(
+              "button"
+            );
+
+          download.textContent =
+            "Download";
+
+
+          download.addEventListener(
+            "click",
+            () => {
+
+              const url =
+                URL.createObjectURL(
+                  recording.audioBlob
+                );
+
+
+              const a =
+                document.createElement(
+                  "a"
+                );
+
+              a.href = url;
+
+              a.download =
+                safeFileName(
+                  recording.title
+                ) +
+                ".webm";
+
+
+              document.body
+                .appendChild(a);
+
+              a.click();
+
+              a.remove();
+
+
+              setTimeout(
+                () =>
+                  URL.revokeObjectURL(
+                    url
+                  ),
+                1000
+              );
+
+            }
+          );
+
+
+          const remove =
+            document.createElement(
+              "button"
+            );
+
+          remove.textContent =
+            "Delete";
+
+
+          remove.className =
+            "danger";
+
+
+          remove.addEventListener(
+            "click",
+            async () => {
+
+              const confirmed =
+                confirm(
+                  "Delete this recording?"
+                );
+
+              if (!confirmed) {
+                return;
+              }
+
+              await deleteRecording(
+                recording.id
+              );
+
+            }
+          );
+
+
+          const buttons =
+            document.createElement(
+              "div"
+            );
+
+          buttons.className =
+            "row";
+
+
+          buttons.appendChild(
+            download
+          );
+
+          buttons.appendChild(
+            remove
+          );
+
+
+          card.appendChild(
+            title
+          );
+
+          card.appendChild(
+            meta
+          );
+
+          card.appendChild(
+            audio
+          );
+
+          card.appendChild(
+            buttons
+          );
+
+
+          list.appendChild(
+            card
+          );
+
+        }
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Could not render recordings",
+        error
+      );
+
+      list.innerHTML =
+        `
+          <div class="small">
+            Could not load recordings.
+          </div>
+        `;
+
+    }
+
+  }
+
+
+  function safeFileName(
+    value
+  ) {
+
+    return String(value)
+      .replace(
+        /[^a-z0-9_\-]+/gi,
+        "_"
+      )
+      .replace(
+        /^_+|_+$/g,
+        ""
+      )
+      .slice(0, 80)
+      ||
+      "TRI_recording";
+
+  }
+
+
+  /* -------------------------------------------------------
+     FILE INPUTS
+     ------------------------------------------------------- */
+
+  ["A", "B", "C", "D"]
+    .forEach(name => {
+
+      $("file" + name)
+        .addEventListener(
+          "change",
+          event => {
+
+            const file =
+              event.target.files &&
+              event.target.files[0];
+
+            if (file) {
+
+              loadLayer(
+                name,
+                file
+              );
+
+            }
+
+          }
+        );
+
+
+      $("play" + name)
+        .addEventListener(
+          "click",
+          () =>
+            playLayer(name)
+        );
+
+
+      $("stop" + name)
+        .addEventListener(
+          "click",
+          () =>
+            stopLayer(name)
+        );
+
+    });
+
+
+  $("playAll")
+    .addEventListener(
+      "click",
+      playAll
+    );
+
+
+  $("stopAll")
+    .addEventListener(
+      "click",
+      stopAll
+    );
+
+
+  /* -------------------------------------------------------
+     DIAGNOSTICS
+     ------------------------------------------------------- */
+
+  async function runDiagnostics() {
+
+    /*
+      PWA
+    */
+
+    if (
+      "serviceWorker" in
+      navigator
+    ) {
+
+      setDiagnostic(
+        "diagPwa",
+        "Supported",
+        "ok"
+      );
+
+    } else {
+
+      setDiagnostic(
+        "diagPwa",
+        "Unavailable",
+        "warn"
+      );
+
+    }
+
+
+    /*
+      Audio
+    */
+
+    try {
+
+      ensureAudioContext();
+
+      setDiagnostic(
+        "diagAudio",
+        "Ready",
+        "ok"
+      );
+
+    } catch (error) {
+
+      setDiagnostic(
+        "diagAudio",
+        "Error",
+        "bad"
+      );
+
+    }
+
+
+    /*
+      Microphone
+    */
+
+    if (
+      state.micStream
+    ) {
+
+      setDiagnostic(
+        "diagMic",
+        "Ready",
+        "ok"
+      );
+
+    } else if (
+      navigator.mediaDevices &&
+      navigator.mediaDevices
+        .getUserMedia
+    ) {
+
+      setDiagnostic(
+        "diagMic",
+        "Available",
+        "warn"
+      );
+
+    } else {
+
+      setDiagnostic(
+        "diagMic",
+        "Unavailable",
+        "bad"
+      );
+
+    }
+
+
+    /*
+      Layers
+    */
+
+    ["A", "B", "C", "D"]
+      .forEach(name => {
+
+        const loaded =
+          state.layers[name]
+            .loaded;
+
+        setDiagnostic(
+          "diag" + name,
+          loaded
+            ? "Ready"
+            : "Empty",
+          loaded
+            ? "ok"
+            : "warn"
+        );
+
+      });
+
+
+    /*
+      MediaRecorder
+    */
+
+    if (
+      window.MediaRecorder
+    ) {
+
+      const type =
+        getRecorderMimeType();
+
+      if (type) {
+
+        setDiagnostic(
+          "diagRecorder",
+          type,
+          "ok"
+        );
+
+      } else {
+
+        setDiagnostic(
+          "diagRecorder",
+          "Available",
+          "warn"
+        );
+
+      }
+
+    } else {
+
+      setDiagnostic(
+        "diagRecorder",
+        "Unavailable",
+        "bad"
+      );
+
+    }
+
+
+    /*
+      IndexedDB
+    */
+
+    try {
+
+      await openDatabase();
+
+      setDiagnostic(
+        "diagStorage",
+        "Ready",
+        "ok"
+      );
+
+    } catch (error) {
+
+      setDiagnostic(
+        "diagStorage",
+        "Unavailable",
+        "bad"
+      );
+
+    }
+
+  }
+
+
+  $("runDiagnostics")
+    .addEventListener(
+      "click",
+      runDiagnostics
+    );
+
+
+  /* -------------------------------------------------------
+     PWA
+     ------------------------------------------------------- */
+
+  async function registerPWA() {
+
+    if (
+      !("serviceWorker" in navigator)
+    ) {
+
+      setStatus(
+        "pwaStatus",
+        "Service worker unavailable",
+        "warning"
+      );
+
+      return;
+
+    }
+
+
+    try {
+
+      await navigator.serviceWorker
+        .register(
+          "./sw.js"
+        );
+
+
+      setStatus(
+        "pwaStatus",
+        "PWA ready",
+        "ready"
+      );
+
+
+      setDiagnostic(
+        "diagPwa",
+        "Registered",
+        "ok"
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Service worker error",
+        error
+      );
+
+      setStatus(
+        "pwaStatus",
+        "PWA registration failed",
+        "warning"
+      );
+
+      setDiagnostic(
+        "diagPwa",
+        "Registration failed",
+        "warn"
+      );
+
+    }
+
+  }
+
+
+  /* -------------------------------------------------------
+     INITIALIZATION
+     ------------------------------------------------------- */
+
+  async function init() {
+
+    /*
+      Do not automatically open the microphone.
+      Mobile browsers are much happier when audio/mic
+      starts after an explicit user action.
+    */
+
+    setStatus(
+      "audioStatus",
+      "Waiting for user action"
+    );
+
+    setStatus(
+      "micStatus",
+      "Waiting for permission"
+    );
+
+
+    /*
+      Prepare storage.
+    */
+
+    try {
+
+      await openDatabase();
+
+    } catch (error) {
+
+      console.error(
+        "IndexedDB initialization error",
+        error
+      );
+
+    }
+
+
+    /*
+      Register PWA.
+    */
+
+    registerPWA();
+
+
+    /*
+      Render existing recordings.
+    */
+
+    renderRecordings();
+
+
+    /*
+      Initial diagnostics.
+    */
+
+    runDiagnostics();
+
+  }
+
+
+  init();
+
+
+})();
+</script>
+
+</body>
+</html>
