@@ -338,6 +338,19 @@
       width: 100%;
       margin: 8px 0;
     }
+css
+.recording-layer-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.recording-layer-controls button {
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
 
     .small {
       font-size: .76rem;
@@ -1368,39 +1381,92 @@
 
   }
 
+```js
 function loadLayerFromBlob(name, blob) {
-  const layer = state.layers[name];
+
+  const layer =
+    state.layers[name];
 
   if (!layer || !blob) {
     return;
   }
 
-  stopLayer(name);
+  try {
 
-  if (layer.objectUrl) {
-    URL.revokeObjectURL(layer.objectUrl);
-    layer.objectUrl = null;
+    /*
+      Make sure the layer has its
+      audio element, source and gain
+      before assigning the recording.
+    */
+    setupLayer(name);
+
+    stopLayer(name);
+
+    if (layer.objectUrl) {
+
+      URL.revokeObjectURL(
+        layer.objectUrl
+      );
+
+      layer.objectUrl = null;
+
+    }
+
+    const objectUrl =
+      URL.createObjectURL(blob);
+
+    layer.objectUrl =
+      objectUrl;
+
+    layer.audio.src =
+      objectUrl;
+
+    layer.audio.load();
+
+    layer.loaded =
+      true;
+
+    const status =
+      $("layer" + name + "Status");
+
+    if (status) {
+
+      status.textContent =
+        "Saved recording";
+
+    }
+
+    setStatus(
+      "audioStatus",
+      `Layer ${name} loaded from saved recording`,
+      "ready"
+    );
+
+    setDiagnostic(
+      "diag" + name,
+      "Recording loaded",
+      "ok"
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Could not load recording into layer",
+      name,
+      error
+    );
+
+    setDiagnostic(
+      "diag" + name,
+      "Load error",
+      "bad"
+    );
+
   }
 
-  const objectUrl = URL.createObjectURL(blob);
-
-  layer.objectUrl = objectUrl;
-  layer.audio.src = objectUrl;
-  layer.audio.load();
-  layer.loaded = true;
-
-  setStatus(
-    "status",
-    `Layer ${name} loaded from saved recording`,
-    "ready"
-  );
-
-  setDiagnostic(
-    `diagLayer${name}`,
-    "Loaded from recording",
-    "ok"
-  );
 }
+```
+
   function playLayer(name) {
 
     const layer =
@@ -2626,253 +2692,332 @@ function loadLayerFromBlob(name, blob) {
      RECORDING LIST
      ------------------------------------------------------- */
 
-  async function renderRecordings() {
 
-    const list =
-      $("recordingsList");
+async function renderRecordings() {
 
-    if (!list) return;
+  const list =
+    $("recordingsList");
 
-
-    try {
-
-      const recordings =
-        await getAllRecordings();
+  if (!list) return;
 
 
-      if (
-        !recordings.length
-      ) {
+  try {
 
-        list.innerHTML =
-          `
-            <div class="small">
-              No recordings saved yet.
-            </div>
-          `;
-
-        return;
-
-      }
+    const recordings =
+      await getAllRecordings();
 
 
-      list.innerHTML = "";
+    if (
+      !recordings.length
+    ) {
+
+      list.innerHTML =
+        `
+          <div class="small">
+            No recordings saved yet.
+          </div>
+        `;
+
+      return;
+
+    }
 
 
-      recordings.forEach(
-        recording => {
+    list.innerHTML = "";
 
-          const card =
-            document.createElement(
-              "div"
+
+    recordings.forEach(
+      recording => {
+
+        const card =
+          document.createElement(
+            "div"
+          );
+
+        card.className =
+          "recording-card";
+
+
+        const date =
+          new Date(
+            recording.createdAt
+          )
+            .toLocaleString();
+
+
+        const audio =
+          document.createElement(
+            "audio"
+          );
+
+        audio.controls =
+          true;
+
+        audio.src =
+          URL.createObjectURL(
+            recording.audioBlob
+          );
+
+
+        const title =
+          document.createElement(
+            "strong"
+          );
+
+        title.textContent =
+          recording.title;
+
+
+        const meta =
+          document.createElement(
+            "div"
+          );
+
+        meta.className =
+          "small";
+
+        meta.textContent =
+          date +
+          " • " +
+          (
+            recording.layers || []
+          ).join(", ") +
+          " + Mic";
+
+
+        /*
+          DOWNLOAD
+        */
+
+        const download =
+          document.createElement(
+            "button"
+          );
+
+        download.textContent =
+          "Download";
+
+
+        download.addEventListener(
+          "click",
+          () => {
+
+            const url =
+              URL.createObjectURL(
+                recording.audioBlob
+              );
+
+
+            const a =
+              document.createElement(
+                "a"
+              );
+
+            a.href =
+              url;
+
+            a.download =
+              safeFileName(
+                recording.title
+              ) +
+              ".webm";
+
+
+            document.body
+              .appendChild(a);
+
+            a.click();
+
+            a.remove();
+
+
+            setTimeout(
+              () =>
+                URL.revokeObjectURL(
+                  url
+                ),
+              1000
             );
 
-          card.className =
-            "recording-card";
+          }
+        );
 
 
-          const date =
-            new Date(
-              recording.createdAt
-            )
-              .toLocaleString();
+        /*
+          DELETE
+        */
+
+        const remove =
+          document.createElement(
+            "button"
+          );
+
+        remove.textContent =
+          "Delete";
+
+        remove.className =
+          "danger";
 
 
-          const audio =
-            document.createElement(
-              "audio"
+        remove.addEventListener(
+          "click",
+          async () => {
+
+            const confirmed =
+              confirm(
+                "Delete this recording?"
+              );
+
+            if (!confirmed) {
+              return;
+            }
+
+            await deleteRecording(
+              recording.id
             );
 
-          audio.controls = true;
-
-          audio.src =
-            URL.createObjectURL(
-              recording.audioBlob
-            );
+          }
+        );
 
 
-          const title =
-            document.createElement(
-              "strong"
-            );
+        /*
+          ADD SAVED RECORDING
+          TO AUDIO LAYER
+        */
 
-          title.textContent =
-            recording.title;
+        const layerControls =
+          document.createElement(
+            "div"
+          );
 
-
-          const meta =
-            document.createElement(
-              "div"
-            );
-
-          meta.className =
-            "small";
-
-          meta.textContent =
-            date +
-            " • " +
-            (
-              recording.layers || []
-            ).join(", ") +
-            " + Mic";
+        layerControls.className =
+          "recording-layer-controls";
 
 
-          const download =
-            document.createElement(
-              "button"
-            );
+        const layerLabel =
+          document.createElement(
+            "span"
+          );
 
-          download.textContent =
-            "Download";
+        layerLabel.className =
+          "small";
 
-
-          download.addEventListener(
-            "click",
-            () => {
-
-              const url =
-                URL.createObjectURL(
-                  recording.audioBlob
-                );
+        layerLabel.textContent =
+          "Add to Layer:";
 
 
-              const a =
+        layerControls.appendChild(
+          layerLabel
+        );
+
+
+        ["A", "B", "C", "D"]
+          .forEach(
+            layerName => {
+
+              const layerButton =
                 document.createElement(
-                  "a"
+                  "button"
                 );
 
-              a.href = url;
-
-              a.download =
-                safeFileName(
-                  recording.title
-                ) +
-                ".webm";
+              layerButton.textContent =
+                layerName;
 
 
-              document.body
-                .appendChild(a);
+              layerButton.addEventListener(
+                "click",
+                () => {
 
-              a.click();
+                  loadLayerFromBlob(
+                    layerName,
+                    recording.audioBlob
+                  );
 
-              a.remove();
+                }
+              );
 
 
-              setTimeout(
-                () =>
-                  URL.revokeObjectURL(
-                    url
-                  ),
-                1000
+              layerControls.appendChild(
+                layerButton
               );
 
             }
           );
-const layerControls =
-  document.createElement("div");
 
-layerControls.className =
-  "layer-controls";
 
-const layerLabel =
-  document.createElement("span");
+        /*
+          BUTTON ROW
+        */
 
-layerLabel.textContent =
-  "Add to Layer:";
+        const buttons =
+          document.createElement(
+            "div"
+          );
 
-layerControls.appendChild(
-  layerLabel
-);
+        buttons.className =
+          "row";
 
-["A", "B", "C", "D"].forEach(
-  layerName => {
 
-    const layerButton =
-      document.createElement("button");
+        buttons.appendChild(
+          download
+        );
 
-    layerButton.textContent =
-      layerName;
+        buttons.appendChild(
+          layerControls
+        );
 
-    layerButton.addEventListener(
-      "click",
-      () => {
+        buttons.appendChild(
+          remove
+        );
 
-        loadLayerFromBlob(
-          layerName,
-          recording.audioBlob
+
+        /*
+          CARD
+        */
+
+        card.appendChild(
+          title
+        );
+
+        card.appendChild(
+          meta
+        );
+
+        card.appendChild(
+          audio
+        );
+
+        card.appendChild(
+          buttons
+        );
+
+
+        list.appendChild(
+          card
         );
 
       }
     );
 
-    layerControls.appendChild(
-      layerButton
+  } catch (error) {
+
+    console.error(
+      "Could not render recordings",
+      error
     );
 
-  }
-);
-
-       const buttons =
-  document.createElement(
-    "div"
-  );
-
-buttons.className =
-  "row";
-
-buttons.appendChild(
-  download
-);
-
-buttons.appendChild(
-  layerControls
-);
-
-buttons.appendChild(
-  remove
-);
-
-          card.appendChild(
-            title
-          );
-
-          card.appendChild(
-            meta
-          );
-
-          card.appendChild(
-            audio
-          );
-
-          card.appendChild(
-            buttons
-          );
-
-
-          list.appendChild(
-            card
-          );
-
-        }
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Could not render recordings",
-        error
-      );
-
-      list.innerHTML =
-        `
-          <div class="small">
-            Could not load recordings.
-          </div>
-        `;
-
-    }
+    list.innerHTML =
+      `
+        <div class="small">
+          Could not load recordings.
+        </div>
+      `;
 
   }
+
+}
+
+
 
 
   function safeFileName(
