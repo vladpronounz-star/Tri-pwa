@@ -1368,7 +1368,39 @@
 
   }
 
+function loadLayerFromBlob(name, blob) {
+  const layer = state.layers[name];
 
+  if (!layer || !blob) {
+    return;
+  }
+
+  stopLayer(name);
+
+  if (layer.objectUrl) {
+    URL.revokeObjectURL(layer.objectUrl);
+    layer.objectUrl = null;
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+
+  layer.objectUrl = objectUrl;
+  layer.audio.src = objectUrl;
+  layer.audio.load();
+  layer.loaded = true;
+
+  setStatus(
+    "status",
+    `Layer ${name} loaded from saved recording`,
+    "ready"
+  );
+
+  setDiagnostic(
+    `diagLayer${name}`,
+    "Loaded from recording",
+    "ok"
+  );
+}
   function playLayer(name) {
 
     const layer =
@@ -2736,7 +2768,49 @@
 
             }
           );
+const layerControls =
+  document.createElement("div");
 
+layerControls.className =
+  "layer-controls";
+
+const layerLabel =
+  document.createElement("span");
+
+layerLabel.textContent =
+  "Add to Layer:";
+
+layerControls.appendChild(
+  layerLabel
+);
+
+["A", "B", "C", "D"].forEach(
+  layerName => {
+
+    const layerButton =
+      document.createElement("button");
+
+    layerButton.textContent =
+      layerName;
+
+    layerButton.addEventListener(
+      "click",
+      () => {
+
+        loadLayerFromBlob(
+          layerName,
+          recording.audioBlob
+        );
+
+      }
+    );
+
+    layerControls.appendChild(
+      layerButton
+    );
+
+  }
+);
 
           const remove =
             document.createElement(
@@ -2781,12 +2855,16 @@
             "row";
 
 
-          buttons.appendChild(
-            download
+        buttons.appendChild(
+          download
           );
 
-          buttons.appendChild(
-            remove
+        buttons.appendChild(
+          layerControls
+          );
+
+        buttons.appendChild(
+          remove
           );
 
 
