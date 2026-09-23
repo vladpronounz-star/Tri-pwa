@@ -2812,41 +2812,7 @@ layerControls.appendChild(
   }
 );
 
-          const remove =
-            document.createElement(
-              "button"
-            );
-
-          remove.textContent =
-            "Delete";
-
-
-          remove.className =
-            "danger";
-
-
-          remove.addEventListener(
-            "click",
-            async () => {
-
-              const confirmed =
-                confirm(
-                  "Delete this recording?"
-                );
-
-              if (!confirmed) {
-                return;
-              }
-
-              await deleteRecording(
-                recording.id
-              );
-
-            }
-          );
-
-
-   const buttons =
+       const buttons =
   document.createElement(
     "div"
   );
@@ -2865,7 +2831,6 @@ buttons.appendChild(
 buttons.appendChild(
   remove
 );
-
 
           card.appendChild(
             title
