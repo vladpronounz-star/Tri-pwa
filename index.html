@@ -11,7 +11,7 @@
 
   <link rel="manifest" href="manifest.json">
 
-  <title>TRI — Focus & Recording Companion</title>
+  <title>TRI V4.2 — Field Reliability</title>
 
   <style>
     :root {
@@ -394,6 +394,18 @@ css
       font-size: .72rem;
       padding: 20px 0;
     }
+
+    .field-dock { position:sticky; top:0; z-index:90; background:#111b2e; border:1px solid var(--border); border-radius:14px; padding:12px; margin:8px 0 18px; }
+    .field-dock .field-row { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+    .field-dock button, .field-dock .file-label { min-height:48px; min-width:54px; touch-action:manipulation; }
+    .field-dock input[type=file] { position:absolute; width:1px; height:1px; opacity:0; }
+    #fieldLog { white-space:pre-wrap; font:11px/1.4 monospace; max-height:130px; overflow:auto; background:#0b1020; padding:8px; }
+    body.field-mode .field-dock { position:sticky; top:0; }
+    body.field-mode .field-dock button { min-height:56px; font-size:16px; }
+    body.field-mode .field-dock #fieldRecord { background:var(--danger); color:#fff; }
+    body.field-mode .panel:not(.field-core) { display:none; }
+    body.field-mode .panel.field-core { padding:12px; }
+    body.field-mode .header { display:none; }
   </style>
 </head>
 
@@ -416,6 +428,16 @@ css
     <div id="micStatus" class="status">● Microphone waiting</div>
     <div id="storageStatus" class="status">● Storage checking</div>
   </div>
+
+
+  <section class="field-dock" aria-label="Field controls">
+    <div class="field-row"><button id="fieldToggle">Field Mode</button><button id="restoreSession" hidden>Restore Last Session</button><button id="applyPwaUpdate" hidden>Update TRI</button><button id="fieldTeleport">↗ Teleport to Mix</button></div>
+    <div id="fieldLayers" class="small" aria-live="polite">A: Empty • B: Empty • C: Empty • D: Empty</div>
+    <div class="field-row"><button id="fieldPlay" class="primary">▶ Play Layers</button><button id="fieldStop">■ Stop</button><button id="fieldRecord">● Record</button><button id="fieldStopRecord">■ Stop Record</button><button id="downloadUnsaved" hidden>Download Unsaved Recording</button></div>
+    <div class="field-row"><input id="fieldFiles" type="file" accept="audio/*,video/mp4,video/webm" multiple><button id="fieldNext">Select Multiple → Next Free</button><button id="fieldAssignA">A</button><button id="fieldAssignB">B</button><button id="fieldAssignC">C</button><button id="fieldAssignD">D</button></div>
+    <div id="loadQueueStatus" class="small" role="status">Queue idle</div>
+    <details><summary>Field diagnostics</summary><div class="small">Events survive a restart. Media files are not stored in this log.</div><pre id="fieldLog"></pre></details>
+  </section>
 
   <!-- BASIC SESSION -->
 
@@ -498,7 +520,7 @@ css
 
   <!-- AUDIO ENGINE -->
 
-  <section class="panel">
+  <section class="panel field-core">
 
     <div class="panel-title">
       Audio Layers
@@ -526,11 +548,11 @@ css
           id="fileA"
           class="file-input"
           type="file"
-          accept="audio/*"
+          accept="audio/*,video/mp4,video/webm"
         >
 
         <label class="file-label" for="fileA">
-          Load Audio
+          Load Media
         </label>
 
         <button id="playA">
@@ -540,6 +562,10 @@ css
         <button id="stopA">
           Stop
         </button>
+
+        <label class="small" style="display:flex;align-items:center;gap:6px;">
+          <input id="loopA" type="checkbox"> Loop
+        </label>
 
       </div>
 
@@ -574,11 +600,11 @@ css
           id="fileB"
           class="file-input"
           type="file"
-          accept="audio/*"
+          accept="audio/*,video/mp4,video/webm"
         >
 
         <label class="file-label" for="fileB">
-          Load Audio
+          Load Media
         </label>
 
         <button id="playB">
@@ -588,6 +614,10 @@ css
         <button id="stopB">
           Stop
         </button>
+
+        <label class="small" style="display:flex;align-items:center;gap:6px;">
+          <input id="loopB" type="checkbox"> Loop
+        </label>
 
       </div>
 
@@ -622,11 +652,11 @@ css
           id="fileC"
           class="file-input"
           type="file"
-          accept="audio/*"
+          accept="audio/*,video/mp4,video/webm"
         >
 
         <label class="file-label" for="fileC">
-          Load Audio
+          Load Media
         </label>
 
         <button id="playC">
@@ -636,6 +666,10 @@ css
         <button id="stopC">
           Stop
         </button>
+
+        <label class="small" style="display:flex;align-items:center;gap:6px;">
+          <input id="loopC" type="checkbox"> Loop
+        </label>
 
       </div>
 
@@ -670,11 +704,11 @@ css
           id="fileD"
           class="file-input"
           type="file"
-          accept="audio/*"
+          accept="audio/*,video/mp4,video/webm"
         >
 
         <label class="file-label" for="fileD">
-          Load Audio
+          Load Media
         </label>
 
         <button id="playD">
@@ -684,6 +718,10 @@ css
         <button id="stopD">
           Stop
         </button>
+
+        <label class="small" style="display:flex;align-items:center;gap:6px;">
+          <input id="loopD" type="checkbox"> Loop
+        </label>
 
       </div>
 
@@ -734,7 +772,7 @@ css
 
   <!-- MICROPHONE -->
 
-  <section class="panel">
+  <section class="panel field-core">
 
     <div class="panel-title">
       Microphone
@@ -773,6 +811,12 @@ css
 
     </div>
 
+    <div class="field" style="margin-top:12px;">
+      <label for="micGainControl">Mic recording gain <strong id="micGainValue">1.0×</strong></label>
+      <input id="micGainControl" type="range" min="0.5" max="5" step="0.1" value="1">
+      <div class="small">Phone sounded solid at 1×. Raise this on quiet desktop microphones; watch the meter and avoid clipping.</div>
+    </div>
+
     <div class="row">
 
       <label style="display:flex;align-items:center;gap:8px;">
@@ -795,7 +839,7 @@ css
 
   <!-- RECORDING -->
 
-  <section class="panel">
+  <section class="panel field-core">
 
     <div class="panel-title">
       Recording
@@ -846,11 +890,20 @@ css
       TRI audio layers.
     </div>
 
+    <div id="quickAddPanel" class="notice" style="display:none;margin-top:10px;">
+      <strong>Recording saved.</strong> Add it straight back into TRI for AMP DEV:
+      <div class="row" style="margin-top:8px;">
+        <button id="quickAddNext" class="good">+ Next Free Layer</button>
+        <button id="quickAddA">+ A</button><button id="quickAddB">+ B</button>
+        <button id="quickAddC">+ C</button><button id="quickAddD">+ D</button>
+      </div>
+    </div>
+
   </section>
 
   <!-- SAVE INFORMATION -->
 
-  <section class="panel">
+  <section class="panel field-core">
 
     <div class="panel-title">
       Save Session
@@ -883,6 +936,17 @@ css
 
     </div>
 
+  </section>
+
+  <!-- PRESETS -->
+  <section class="panel">
+    <div class="panel-title">Presets</div>
+    <div class="notice">A preset remembers Library-backed layer sources plus volume, loop and segment settings. External files must first be captured/saved into the Library before a preset can fully restore them.</div>
+    <div class="row" style="margin-top:10px;">
+      <button id="savePreset" class="good">Save Current Preset</button>
+    </div>
+    <button type="button" class="teleportMix">↗ Teleport to Mix</button>
+    <div id="presetsList" style="margin-top:10px;"><div class="small">No presets saved yet.</div></div>
   </section>
 
   <!-- DIAGNOSTICS -->
@@ -956,6 +1020,13 @@ css
       Saved TRI Recordings
     </div>
 
+    <div class="row" style="margin-bottom:10px;">
+      <button type="button" class="teleportMix">↗ Teleport to Mix</button>
+      <button id="auditionLibrary">▶ Audition Library</button>
+      <button id="stopAudition">■ Stop Audition</button>
+      <span id="auditionStatus" class="small">Ready</span>
+    </div>
+
     <div
       id="recordingsList">
       <div class="small">
@@ -966,7 +1037,7 @@ css
   </section>
 
   <footer class="footer">
-    TRI V1.6 Field Mode — stabilization build
+    TRI V4.2 — field reliability checkpoint
   </footer>
 
 </div>
@@ -1026,7 +1097,7 @@ css
         source: null,
         gain: null,
         loaded: false,
-        objectUrl: null
+        objectUrl: null, sourceRecordingId: null, segmentStart: 0, segmentEnd: null
       },
 
       B: {
@@ -1034,7 +1105,7 @@ css
         source: null,
         gain: null,
         loaded: false,
-        objectUrl: null
+        objectUrl: null, sourceRecordingId: null, segmentStart: 0, segmentEnd: null
       },
 
       C: {
@@ -1042,7 +1113,7 @@ css
         source: null,
         gain: null,
         loaded: false,
-        objectUrl: null
+        objectUrl: null, sourceRecordingId: null, segmentStart: 0, segmentEnd: null
       },
 
       D: {
@@ -1050,7 +1121,7 @@ css
         source: null,
         gain: null,
         loaded: false,
-        objectUrl: null
+        objectUrl: null, sourceRecordingId: null, segmentStart: 0, segmentEnd: null
       }
 
     }
@@ -1177,6 +1248,8 @@ css
       state.audioContext =
         new AudioContextClass();
 
+      state.audioContext.addEventListener("statechange", () => fieldEvent("audio-context", state.audioContext.state));
+
       state.masterGain =
         state.audioContext.createGain();
 
@@ -1219,14 +1292,7 @@ css
 
     }
 
-    if (
-      state.audioContext.state === "suspended"
-    ) {
-
-      state.audioContext.resume();
-
-    }
-
+    // Resume only from an explicit Play/Record gesture; observe its Promise.
     return state.audioContext;
 
   }
@@ -1253,6 +1319,7 @@ css
       document.createElement("audio");
 
     audio.preload = "auto";
+    audio.loop = Boolean($("loop" + name)?.checked);
 
     /*
       Do NOT autoplay.
@@ -1294,6 +1361,9 @@ css
       state.masterGain
     );
 
+    audio.addEventListener("stalled", () => fieldEvent("media-stalled", `Layer ${name}`));
+    audio.addEventListener("waiting", () => fieldEvent("media-waiting", `Layer ${name}`));
+    audio.addEventListener("error", () => fieldEvent("media-error", `Layer ${name}: ${describeMediaFailure(audio.error, audio)}`));
     layer.audio = audio;
     layer.source = source;
     layer.gain = gain;
@@ -1316,156 +1386,84 @@ css
   }
 
 
-  async function loadLayer(
-    name,
-    file
-  ) {
-
-    if (!file) return;
-
+  async function loadLayer(name, file, recordingId = null, label = "") {
+    if (!file || !state.layers[name]) return false;
+    const layer = state.layers[name];
+    if (layer.loading) {
+      fieldEvent("load-busy", `Layer ${name} is still loading`);
+      return false;
+    }
+    layer.loading = true;
+    const status = $("layer" + name + "Status");
+    const oldUrl = layer.objectUrl;
+    const oldLoaded = layer.loaded;
+    const oldId = layer.sourceRecordingId;
+    const oldName = layer.externalName;
+    let url = null, candidate = null, installed = false;
+    status.textContent = `Loading ${label || file.name || "media"}…`;
+    setDiagnostic("diag" + name, "Loading", "warn");
+    fieldEvent("load-start", `Layer ${name}; ${Math.round(file.size / 1048576) || 0} MB`);
     try {
-
+      if (!file.size) throw new Error("Empty file");
+      if (file.size > 150 * 1048576) fieldEvent("resource-warning", `Layer ${name}: large media may exceed phone memory`);
+      const mime = file.type || "";
+      if (mime && !mime.startsWith("audio/") && !mime.startsWith("video/"))
+        throw new DOMException("File is not audio/video", "NotSupportedError");
+      const probe = document.createElement("audio");
+      if (mime && !probe.canPlayType(mime))
+        fieldEvent("codec-warning", `${mime} not reported playable; attempting metadata load`);
+      url = URL.createObjectURL(file);
+      candidate = document.createElement("audio");
+      candidate.preload = "metadata";
+      await waitForMetadata(candidate, url);
+      candidate.removeAttribute("src"); candidate.load(); candidate = null;
       setupLayer(name);
-
-      const layer =
-        state.layers[name];
-
-      if (layer.objectUrl) {
-
-        URL.revokeObjectURL(
-          layer.objectUrl
-        );
-
-      }
-
-      const url =
-        URL.createObjectURL(file);
-
+      layer.audio.pause();
+      // The old Blob URL stays alive until the replacement has loaded.
+      installed = true;
+      await waitForMetadata(layer.audio, url);
+      if (layer.audio.src !== url) throw new Error("stale object URL");
       layer.objectUrl = url;
-
-      layer.audio.src = url;
-
-      layer.audio.load();
-
+      layer.sourceRecordingId = recordingId;
+      layer.sourceClipId = null;
+      layer.externalName = label || file.name || "Media";
+      layer.segmentStart = 0; layer.segmentEnd = null;
+      layer.segmentLoop = false; layer.segmentPlayback = false;
+      layer.audio.loop = Boolean($("loop" + name).checked);
       layer.loaded = true;
-
-      $("layer" + name + "Status")
-        .textContent =
-        file.name;
-
-      setDiagnostic(
-        "diag" + name,
-        "Ready",
-        "ok"
-      );
-
+      layer.gain.gain.value = Number($("volume" + name).value);
+      status.textContent = `Ready: ${layer.externalName}`;
+      setDiagnostic("diag" + name, "Ready", "ok");
+      if (oldUrl && oldUrl !== url) URL.revokeObjectURL(oldUrl);
+      fieldEvent("load-ready", `Layer ${name}; ${formatPrecise(layer.audio.duration)}; context ${state.audioContext?.state}`);
+      syncLayerTransport(name); saveActiveSession(true); renderFieldStatus();
+      return true;
     } catch (error) {
-
-      console.error(
-        "Layer load error",
-        name,
-        error
-      );
-
-      $("layer" + name + "Status")
-        .textContent =
-        "Error";
-
-      setDiagnostic(
-        "diag" + name,
-        "Error",
-        "bad"
-      );
-
+      const reason = describeMediaFailure(error, installed ? layer.audio : candidate);
+      fieldEvent("load-failed", `Layer ${name}: ${reason}`);
+      if (candidate) { candidate.removeAttribute("src"); candidate.load(); }
+      if (installed && layer.audio) {
+        if (oldUrl) layer.audio.src = oldUrl;
+        else layer.audio.removeAttribute("src");
+        layer.audio.load();
+      }
+      if (url) URL.revokeObjectURL(url);
+      layer.objectUrl = oldUrl;
+      layer.sourceRecordingId = oldId;
+      layer.externalName = oldName;
+      layer.loaded = oldLoaded;
+      status.textContent = oldLoaded ? `Load failed; previous layer kept: ${reason}` : `Load failed: ${reason}`;
+      setDiagnostic("diag" + name, reason, "bad");
+      renderFieldStatus();
+      return false;
+    } finally {
+      layer.loading = false;
     }
-
   }
 
-```js
-function loadLayerFromBlob(name, blob) {
-
-  const layer =
-    state.layers[name];
-
-  if (!layer || !blob) {
-    return;
+  async function loadLayerFromBlob(name, blob, recordingId = null, title = "Saved recording") {
+    return loadLayer(name, blob, recordingId, title);
   }
-
-  try {
-
-    /*
-      Make sure the layer has its
-      audio element, source and gain
-      before assigning the recording.
-    */
-    setupLayer(name);
-
-    stopLayer(name);
-
-    if (layer.objectUrl) {
-
-      URL.revokeObjectURL(
-        layer.objectUrl
-      );
-
-      layer.objectUrl = null;
-
-    }
-
-    const objectUrl =
-      URL.createObjectURL(blob);
-
-    layer.objectUrl =
-      objectUrl;
-
-    layer.audio.src =
-      objectUrl;
-
-    layer.audio.load();
-
-    layer.loaded =
-      true;
-
-    const status =
-      $("layer" + name + "Status");
-
-    if (status) {
-
-      status.textContent =
-        "Saved recording";
-
-    }
-
-    setStatus(
-      "audioStatus",
-      `Layer ${name} loaded from saved recording`,
-      "ready"
-    );
-
-    setDiagnostic(
-      "diag" + name,
-      "Recording loaded",
-      "ok"
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Could not load recording into layer",
-      name,
-      error
-    );
-
-    setDiagnostic(
-      "diag" + name,
-      "Load error",
-      "bad"
-    );
-
-  }
-
-}
-```
 
   function playLayer(name) {
 
@@ -1478,15 +1476,14 @@ function loadLayerFromBlob(name, blob) {
 
     ensureAudioContext();
 
-    state.audioContext.resume();
+    resumeAudioForGesture().catch(error => fieldEvent("audio-context", error.message));
 
+    startSelectedLayer(layer);
     layer.audio.play()
       .catch(error => {
+        setStatus("audioStatus", error.name === "NotAllowedError" ? "Tap Play to allow audio" : `Playback failed: ${error.message}`, "error");
 
-        console.error(
-          "Playback error",
-          error
-        );
+        fieldEvent("play-failed", `Layer ${name}: ${error.name || "Error"}: ${error.message}; context ${state.audioContext?.state}`);
 
         $("layer" + name + "Status")
           .textContent =
@@ -1509,7 +1506,7 @@ function loadLayerFromBlob(name, blob) {
     layer.audio.pause();
 
     try {
-      layer.audio.currentTime = 0;
+      layer.audio.currentTime = layer.segmentLoop ? (layer.segmentStart || 0) : 0;
     } catch (error) {}
 
   }
@@ -1517,7 +1514,8 @@ function loadLayerFromBlob(name, blob) {
 
   function playAll() {
 
-    ensureAudioContext();
+    if (navigator.mediaSession) navigator.mediaSession.playbackState = "playing";
+    resumeAudioForGesture().catch(error => fieldEvent("audio-context", error.message));
 
     Object.keys(
       state.layers
@@ -1531,13 +1529,11 @@ function loadLayerFromBlob(name, blob) {
         layer.audio
       ) {
 
+        startSelectedLayer(layer);
         layer.audio.play()
           .catch(error => {
-            console.warn(
-              "Could not play",
-              name,
-              error
-            );
+            setStatus("audioStatus", error.name === "NotAllowedError" ? "Tap Play to allow audio" : `Playback failed: ${error.message}`, "error");
+            fieldEvent("play-failed", `Layer ${name}: ${error.name || "Error"}: ${error.message}; context ${state.audioContext?.state}`);
           });
 
       }
@@ -1549,6 +1545,8 @@ function loadLayerFromBlob(name, blob) {
 
   function stopAll() {
 
+    if (navigator.mediaSession) navigator.mediaSession.playbackState = "paused";
+    saveActiveSession(true);
     Object.keys(
       state.layers
     ).forEach(
@@ -1687,7 +1685,7 @@ function loadLayerFromBlob(name, blob) {
         .createGain();
 
 
-    state.micGain.gain.value = 1;
+    state.micGain.gain.value = Number($("micGainControl")?.value || 1);
 
 
     /*
@@ -1801,6 +1799,12 @@ function loadLayerFromBlob(name, blob) {
 
   }
 
+
+  $("micGainControl").addEventListener("input", event => {
+    const value = Number(event.target.value || 1);
+    $("micGainValue").textContent = value.toFixed(1) + "×";
+    if (state.micGain) state.micGain.gain.value = value;
+  });
 
   $("monitorMic")
     .addEventListener(
@@ -1994,7 +1998,8 @@ function loadLayerFromBlob(name, blob) {
 
   async function startRecording() {
 
-    ensureAudioContext();
+    try { await resumeAudioForGesture(); }
+    catch (error) { fieldEvent("record-blocked", error.message); return; }
 
     /*
       We require the microphone to be explicitly
@@ -2095,6 +2100,7 @@ function loadLayerFromBlob(name, blob) {
     state.recordingChunks = [];
 
     state.recorder = recorder;
+    fieldEvent("record", "Recorder starting; chunks are saved to Library after Stop");
 
 
     recorder.ondataavailable =
@@ -2132,15 +2138,14 @@ function loadLayerFromBlob(name, blob) {
       };
 
 
-    recorder.onstop =
-      async () => {
-
-        await finishRecording(
-          mimeType ||
-          "audio/webm"
-        );
-
-      };
+    recorder.onstop = async () => {
+      try { await finishRecording(mimeType || "audio/webm"); }
+      catch (error) {
+        fieldEvent("record-save-failed", error.message);
+        setStatus("storageStatus", "Save failed; download the unsaved recording now", "error");
+        $("downloadUnsaved").hidden = !state.currentBlob;
+      }
+    };
 
 
     /*
@@ -2203,6 +2208,7 @@ function loadLayerFromBlob(name, blob) {
     }
 
     state.recorder.stop();
+    fieldEvent("record", "Stop requested; saving audio");
 
   }
 
@@ -2282,11 +2288,15 @@ function loadLayerFromBlob(name, blob) {
       Automatically save to IndexedDB.
     */
 
-    await saveRecording(
-      blob
-    );
+    state.currentRecordingId = await saveRecording(blob);
+    $("downloadUnsaved").hidden = true;
+    fieldEvent("record-saved", `Recording stored as ${state.currentRecordingId}`);
+
+    const quickPanel = $("quickAddPanel");
+    if (quickPanel) quickPanel.style.display = "block";
 
     renderRecordings();
+    saveActiveSession(true);
 
   }
 
@@ -2332,6 +2342,21 @@ function loadLayerFromBlob(name, blob) {
 
   }
 
+
+  function quickAddCurrentRecording(layerName) {
+    if (!state.currentBlob) return;
+    if (!layerName) { fieldEvent("quick-add", "All layers full; choose A/B/C/D to replace"); return; }
+    loadLayerFromBlob(layerName, state.currentBlob, state.currentRecordingId, "Latest recording");
+  }
+
+  function nextFreeLayerName() {
+    return ["A", "B", "C", "D"].find(name => !state.layers[name].loaded) || null;
+  }
+
+  ["A", "B", "C", "D"].forEach(name => {
+    $("quickAdd" + name).addEventListener("click", () => quickAddCurrentRecording(name));
+  });
+  $("quickAddNext").addEventListener("click", () => quickAddCurrentRecording(nextFreeLayerName()));
 
   $("startRecording")
     .addEventListener(
@@ -2553,20 +2578,10 @@ function loadLayerFromBlob(name, blob) {
             STORE
           );
 
-        const request =
-          store.put(
-            item
-          );
-
-
-        request.onsuccess =
-          () => resolve();
-
-
-        request.onerror =
-          () => reject(
-            request.error
-          );
+        store.put(item);
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+        transaction.onabort = () => reject(transaction.error || new Error("Recording save aborted"));
 
       }
     );
@@ -2575,11 +2590,8 @@ function loadLayerFromBlob(name, blob) {
     db.close();
 
 
-    setStatus(
-      "storageStatus",
-      "Recording saved",
-      "ready"
-    );
+    setStatus("storageStatus", "Recording saved", "ready");
+    return item.id;
 
   }
 
@@ -2693,330 +2705,343 @@ function loadLayerFromBlob(name, blob) {
      ------------------------------------------------------- */
 
 
-async function renderRecordings() {
-
-  const list =
-    $("recordingsList");
-
-  if (!list) return;
-
-
-  try {
-
-    const recordings =
-      await getAllRecordings();
-
-
-    if (
-      !recordings.length
-    ) {
-
-      list.innerHTML =
-        `
-          <div class="small">
-            No recordings saved yet.
-          </div>
-        `;
-
-      return;
-
-    }
-
-
-    list.innerHTML = "";
-
-
-    recordings.forEach(
-      recording => {
-
-        const card =
-          document.createElement(
-            "div"
-          );
-
-        card.className =
-          "recording-card";
-
-
-        const date =
-          new Date(
-            recording.createdAt
-          )
-            .toLocaleString();
-
-
-        const audio =
-          document.createElement(
-            "audio"
-          );
-
-        audio.controls =
-          true;
-
-        audio.src =
-          URL.createObjectURL(
-            recording.audioBlob
-          );
-
-
-        const title =
-          document.createElement(
-            "strong"
-          );
-
-        title.textContent =
-          recording.title;
-
-
-        const meta =
-          document.createElement(
-            "div"
-          );
-
-        meta.className =
-          "small";
-
-        meta.textContent =
-          date +
-          " • " +
-          (
-            recording.layers || []
-          ).join(", ") +
-          " + Mic";
-
-
-        /*
-          DOWNLOAD
-        */
-
-        const download =
-          document.createElement(
-            "button"
-          );
-
-        download.textContent =
-          "Download";
-
-
-        download.addEventListener(
-          "click",
-          () => {
-
-            const url =
-              URL.createObjectURL(
-                recording.audioBlob
-              );
-
-
-            const a =
-              document.createElement(
-                "a"
-              );
-
-            a.href =
-              url;
-
-            a.download =
-              safeFileName(
-                recording.title
-              ) +
-              ".webm";
-
-
-            document.body
-              .appendChild(a);
-
-            a.click();
-
-            a.remove();
-
-
-            setTimeout(
-              () =>
-                URL.revokeObjectURL(
-                  url
-                ),
-              1000
-            );
-
-          }
-        );
-
-
-        /*
-          DELETE
-        */
-
-        const remove =
-          document.createElement(
-            "button"
-          );
-
-        remove.textContent =
-          "Delete";
-
-        remove.className =
-          "danger";
-
-
-        remove.addEventListener(
-          "click",
-          async () => {
-
-            const confirmed =
-              confirm(
-                "Delete this recording?"
-              );
-
-            if (!confirmed) {
-              return;
-            }
-
-            await deleteRecording(
-              recording.id
-            );
-
-          }
-        );
-
-
-        /*
-          ADD SAVED RECORDING
-          TO AUDIO LAYER
-        */
-
-        const layerControls =
-          document.createElement(
-            "div"
-          );
-
-        layerControls.className =
-          "recording-layer-controls";
-
-
-        const layerLabel =
-          document.createElement(
-            "span"
-          );
-
-        layerLabel.className =
-          "small";
-
-        layerLabel.textContent =
-          "Add to Layer:";
-
-
-        layerControls.appendChild(
-          layerLabel
-        );
-
-
-        ["A", "B", "C", "D"]
-          .forEach(
-            layerName => {
-
-              const layerButton =
-                document.createElement(
-                  "button"
-                );
-
-              layerButton.textContent =
-                layerName;
-
-
-              layerButton.addEventListener(
-                "click",
-                () => {
-
-                  loadLayerFromBlob(
-                    layerName,
-                    recording.audioBlob
-                  );
-
-                }
-              );
-
-
-              layerControls.appendChild(
-                layerButton
-              );
-
-            }
-          );
-
-
-        /*
-          BUTTON ROW
-        */
-
-        const buttons =
-          document.createElement(
-            "div"
-          );
-
-        buttons.className =
-          "row";
-
-
-        buttons.appendChild(
-          download
-        );
-
-        buttons.appendChild(
-          layerControls
-        );
-
-        buttons.appendChild(
-          remove
-        );
-
-
-        /*
-          CARD
-        */
-
-        card.appendChild(
-          title
-        );
-
-        card.appendChild(
-          meta
-        );
-
-        card.appendChild(
-          audio
-        );
-
-        card.appendChild(
-          buttons
-        );
-
-
-        list.appendChild(
-          card
-        );
-
-      }
-    );
-
-  } catch (error) {
-
-    console.error(
-      "Could not render recordings",
-      error
-    );
-
-    list.innerHTML =
-      `
-        <div class="small">
-          Could not load recordings.
-        </div>
-      `;
-
+async function updateRecordingItem(recording) {
+
+    const db = await openDatabase();
+
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE, "readwrite");
+      const store = transaction.objectStore(STORE);
+      store.put(recording);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error || new Error("Save aborted"));
+    });
+
+    db.close();
   }
 
-}
 
+  function recordingExtension(mimeType) {
+    const type = String(mimeType || "").toLowerCase();
+    if (type.includes("mp4") || type.includes("m4a")) return "m4a";
+    if (type.includes("ogg")) return "ogg";
+    if (type.includes("wav")) return "wav";
+    return "webm";
+  }
+
+
+  function recordingVisual(recording) {
+    /*
+      Gives every recording a distinctive visual identity WITHOUT storing
+      another image file. The same recording ID always produces the same
+      icon + gradient, so Library cards become recognizable at a glance.
+    */
+    const icons = ["◉", "✦", "≈", "△", "◇", "☼", "∞", "✺", "◎", "✧"];
+    const seed = String(recording.id || recording.createdAt || recording.title || "TRI");
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+      hash |= 0;
+    }
+    const hueA = Math.abs(hash) % 360;
+    const hueB = (hueA + 70 + (Math.abs(hash) % 80)) % 360;
+    return {
+      icon: icons[Math.abs(hash) % icons.length],
+      background: `linear-gradient(135deg, hsl(${hueA} 70% 34%), hsl(${hueB} 72% 18%))`
+    };
+  }
+
+
+  async function downloadRecording(recording) {
+    const url = URL.createObjectURL(recording.audioBlob);
+    const a = document.createElement("a");
+    const ext = recordingExtension(recording.mimeType || recording.audioBlob.type);
+    a.href = url;
+    a.download = safeFileName(recording.title) + "." + ext;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+    recording.exportedAt = new Date().toISOString();
+    await updateRecordingItem(recording);
+    setStatus("storageStatus", "Exported + stored locally", "ready");
+    renderRecordings();
+  }
+
+
+  async function shareRecording(recording) {
+    const ext = recordingExtension(recording.mimeType || recording.audioBlob.type);
+    const file = new File(
+      [recording.audioBlob],
+      safeFileName(recording.title) + "." + ext,
+      { type: recording.mimeType || recording.audioBlob.type || "audio/webm" }
+    );
+
+    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      try {
+        await navigator.share({
+          title: recording.title,
+          text: "TRI recording",
+          files: [file]
+        });
+        recording.sharedAt = new Date().toISOString();
+        await updateRecordingItem(recording);
+        renderRecordings();
+        return;
+      } catch (error) {
+        if (error && error.name === "AbortError") return;
+        console.warn("Share failed; falling back to download", error);
+      }
+    }
+
+    await downloadRecording(recording);
+  }
+
+
+  let recordingRenderLimit = 20;
+  const libraryObjectUrls = new Set();
+  async function renderRecordings() {
+
+    const list = $("recordingsList");
+    if (!list) return;
+
+    try {
+      const recordings = await getAllRecordings();
+
+      for (const url of libraryObjectUrls) URL.revokeObjectURL(url);
+      libraryObjectUrls.clear();
+      if (!recordings.length) {
+        list.innerHTML = `<div class="small">No recordings saved yet.</div>`;
+        return;
+      }
+
+      list.innerHTML = "";
+
+      recordings.slice(0, recordingRenderLimit).forEach(recording => {
+        const card = document.createElement("div");
+        card.className = "recording-card";
+
+        const visual = recordingVisual(recording);
+        const hero = document.createElement("div");
+        hero.style.cssText = `height:74px;border-radius:12px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;background:${visual.background};`;
+        hero.textContent = recording.coverEmoji || visual.icon;
+        hero.title = "Lightweight generated Library identity — no image file stored";
+
+        const titleRow = document.createElement("div");
+        titleRow.className = "row";
+
+        const title = document.createElement("strong");
+        title.textContent = recording.title;
+        title.style.flex = "1";
+
+        const rename = document.createElement("button");
+        rename.textContent = "Rename";
+        rename.addEventListener("click", async () => {
+          const next = prompt("Recording name", recording.title || "TRI Session");
+          if (!next || !next.trim()) return;
+          recording.title = next.trim();
+          await updateRecordingItem(recording);
+          renderRecordings();
+        });
+
+        titleRow.append(title, rename);
+
+        const date = new Date(recording.createdAt).toLocaleString();
+        const layerText = (recording.layers || []).length
+          ? (recording.layers || []).join(", ")
+          : "No routed layers";
+
+        const meta = document.createElement("div");
+        meta.className = "small";
+        meta.textContent = `${date} • ${layerText}${recording.microphone ? " + Mic" : ""}`;
+
+        const flavor = document.createElement("div");
+        flavor.className = "small";
+        flavor.style.marginTop = "5px";
+        const flavorParts = [recording.mode, recording.function, recording.style, recording.element, recording.prompt]
+          .filter(Boolean);
+        flavor.textContent = flavorParts.length ? flavorParts.join(" • ") : "Unclassified TRI capture";
+
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        audio.preload = "none";
+        audio.src = URL.createObjectURL(recording.audioBlob);
+        libraryObjectUrls.add(audio.src);
+        const precise = document.createElement("div");
+        precise.className = "small";
+        precise.style.marginTop = "6px";
+        const seek = document.createElement("input");
+        seek.type = "range"; seek.min = "0"; seek.max = "1"; seek.step = "0.001"; seek.value = "0";
+        seek.style.width = "100%";
+        let markStart = 0, markEnd = null, loopSelection = false, clipEnd = null;
+        const segmentRow = document.createElement("div"); segmentRow.className = "row"; segmentRow.style.marginTop = "6px";
+        const startBtn = document.createElement("button"); startBtn.textContent = "Set Start";
+        const endBtn = document.createElement("button"); endBtn.textContent = "Set End";
+        const loopBtn = document.createElement("button"); loopBtn.textContent = "Loop Selection: Off";
+        const clipBtn = document.createElement("button"); clipBtn.textContent = "Save Selection as Clip";
+        const segLabel = document.createElement("span"); segLabel.className = "small";
+        const clipList = document.createElement("div"); clipList.className = "small";
+        const duration = () => finiteDuration(audio);
+        const refresh = () => {
+          const d = duration();
+          seek.max = String(d || 1); seek.disabled = !d;
+          seek.value = String(Math.min(audio.currentTime || 0, d || 0));
+          precise.textContent = `${formatPrecise(audio.currentTime)} / ${d ? formatPrecise(d) : "--"}`;
+          segLabel.textContent = `Start ${formatPrecise(markStart)} → End ${markEnd == null ? "--" : formatPrecise(markEnd)}`;
+          paintTimeline(seek, d, markStart, markEnd);
+        };
+        const renderClips = () => {
+          clipList.replaceChildren();
+          (recording.clips || []).forEach(clip => {
+            const row = document.createElement("div"); row.className = "row";
+            const label = document.createElement("span");
+            label.textContent = `${clip.title} (${formatPrecise(clip.start)}–${formatPrecise(clip.end)})`;
+            const play = document.createElement("button"); play.textContent = "Play Clip";
+            play.addEventListener("click", () => {
+              markStart = clip.start; markEnd = clip.end; clipEnd = clip.end; loopSelection = false;
+              loopBtn.textContent = "Loop Selection: Off";
+              audio.currentTime = clip.start; refresh(); audio.play().catch(console.warn);
+            });
+            const load = document.createElement("button"); load.textContent = "Load to Layer";
+            load.addEventListener("click", async () => {
+              const name = nextFreeLayerName();
+              if (!name) { fieldEvent("clip-load", "All layers full; choose a layer to replace"); return; }
+              const ok = await loadLayerFromBlob(name, recording.audioBlob, recording.id, recording.title);
+              if (!ok) return;
+              const layer = state.layers[name];
+              layer.segmentStart = clip.start; layer.segmentEnd = clip.end;
+              layer.sourceClipId = clip.id;
+              layer.segmentLoop = false;
+              layer.segmentPlayback = true;
+              layer.audio.addEventListener("loadedmetadata", () => { layer.audio.currentTime = clip.start; }, {once:true});
+              syncLayerTransport(name); teleportToMix();
+            });
+            row.append(label, play, load); clipList.append(row);
+          });
+        };
+        audio.addEventListener("loadedmetadata", refresh);
+        audio.addEventListener("durationchange", refresh);
+        audio.addEventListener("timeupdate", () => {
+          if (loopSelection && markEnd != null && audio.currentTime >= markEnd) audio.currentTime = markStart;
+          else if (clipEnd != null && audio.currentTime >= clipEnd) { clipEnd = null; audio.pause(); }
+          if (!seek.matches(":active")) refresh();
+        });
+        audio.addEventListener("play", () => {
+          if (loopSelection && markEnd != null) audio.currentTime = markStart;
+        });
+        seek.addEventListener("input", () => { if (duration()) audio.currentTime = Number(seek.value); clipEnd = null; refresh(); });
+        startBtn.addEventListener("click", () => { markStart = audio.currentTime || 0; if (markEnd != null && markEnd <= markStart) markEnd = null; refresh(); });
+        endBtn.addEventListener("click", () => { markEnd = audio.currentTime || 0; if (markEnd < markStart) [markStart, markEnd] = [markEnd, markStart]; refresh(); });
+        loopBtn.addEventListener("click", () => {
+          loopSelection = !loopSelection; clipEnd = null;
+          loopBtn.textContent = `Loop Selection: ${loopSelection ? "On" : "Off"}`;
+          if (loopSelection && markEnd != null) audio.currentTime = markStart;
+          refresh();
+        });
+        clipBtn.addEventListener("click", async () => {
+          const d = duration();
+          if (!d || markEnd == null || markEnd <= markStart || markEnd > d) {
+            setStatus("storageStatus", "Set a valid Start and End before saving a clip", "error"); return;
+          }
+          const title = prompt("Clip name", `${recording.title} • ${formatPrecise(markStart)}–${formatPrecise(markEnd)}`);
+          if (!title || !title.trim()) return;
+          // A time reference inside the source record; the source Blob is untouched.
+          const clip = {id: makeId(), title: title.trim(), sourceRecordingId: recording.id,
+            start: markStart, end: markEnd, createdAt: new Date().toISOString()};
+          const previous = recording.clips;
+          recording.clips = [...(recording.clips || []), clip];
+          try { await updateRecordingItem(recording); renderClips(); setStatus("storageStatus", "Clip reference saved", "ready"); }
+          catch (error) { recording.clips = previous; console.error(error); setStatus("storageStatus", "Clip could not be saved", "error"); }
+        });
+        segmentRow.append(startBtn, endBtn, loopBtn, clipBtn, segLabel);
+        refresh(); renderClips();
+
+        const routeSelect = document.createElement("select");
+        ["Unsorted", "SBN", "OMT", "POV", "Pronounz", "Lesson Vault", "Spirit Quest", "PointPin"]
+          .forEach(route => {
+            const option = document.createElement("option");
+            option.value = route;
+            option.textContent = route;
+            routeSelect.appendChild(option);
+          });
+        routeSelect.value = (recording.routes && recording.routes[0]) || "Unsorted";
+
+        const routeButton = document.createElement("button");
+        routeButton.textContent = "Route";
+        routeButton.addEventListener("click", async () => {
+          recording.routes = routeSelect.value === "Unsorted" ? [] : [routeSelect.value];
+          recording.routedAt = new Date().toISOString();
+          await updateRecordingItem(recording);
+          setStatus("storageStatus", `Routed to ${routeSelect.value}`, "ready");
+          renderRecordings();
+        });
+
+        const routeRow = document.createElement("div");
+        routeRow.className = "row";
+        routeRow.style.margin = "8px 0";
+        routeRow.append(routeSelect, routeButton);
+
+        const status = document.createElement("div");
+        status.className = "small";
+        const routeName = (recording.routes && recording.routes[0]) || "Unsorted";
+        status.textContent = `✓ Stored locally • ${recording.exportedAt ? "✓ Exported" : "○ Not exported"} • Route: ${routeName}`;
+
+        const download = document.createElement("button");
+        download.textContent = "Download";
+        download.addEventListener("click", () => downloadRecording(recording));
+
+        const share = document.createElement("button");
+        share.textContent = "Share";
+        share.addEventListener("click", () => shareRecording(recording));
+
+        const layerControls = document.createElement("div");
+        layerControls.className = "recording-layer-controls";
+        const layerLabel = document.createElement("span");
+        layerLabel.className = "small";
+        layerLabel.textContent = "Replay as Layer:";
+        layerControls.appendChild(layerLabel);
+
+        ["A", "B", "C", "D"].forEach(layerName => {
+          const layerButton = document.createElement("button");
+          layerButton.textContent = layerName;
+          layerButton.addEventListener("click", () => loadLayerFromBlob(layerName, recording.audioBlob, recording.id, recording.title));
+          layerControls.appendChild(layerButton);
+        });
+
+        const remove = document.createElement("button");
+        remove.textContent = "Delete";
+        remove.className = "danger";
+        remove.addEventListener("click", async () => {
+          const clipWarning = (recording.clips || []).length
+            ? ` This also removes ${(recording.clips || []).length} clip reference(s) to it.` : "";
+          const warning = (recording.exportedAt
+            ? "Delete this recording from TRI?"
+            : "This recording has NOT been exported. Delete it anyway?") + clipWarning;
+          if (!confirm(warning)) return;
+          await deleteRecording(recording.id);
+        });
+
+        const buttons = document.createElement("div");
+        buttons.className = "row";
+        buttons.append(download, share, layerControls, remove);
+
+        card.append(hero, titleRow, meta, flavor, audio, precise, seek, segmentRow, clipList, routeRow, status, buttons);
+        list.appendChild(card);
+      });
+      if (recordings.length > recordingRenderLimit) {
+        const more = document.createElement("button");
+        more.textContent = `Show More Recordings (${recordings.length - recordingRenderLimit} remaining)`;
+        more.addEventListener("click", () => { recordingRenderLimit += 20; renderRecordings(); });
+        list.appendChild(more);
+      }
+
+    } catch (error) {
+      console.error("Could not render recordings", error);
+      list.innerHTML = `<div class="small">Could not load recordings.</div>`;
+    }
+  }
 
 
 
@@ -3041,6 +3066,163 @@ async function renderRecordings() {
 
 
   /* -------------------------------------------------------
+     V4 TRANSPORT + PRESETS + LIBRARY AUDITION
+     ------------------------------------------------------- */
+
+  function formatPrecise(seconds) {
+    const n = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+    const m = Math.floor(n / 60);
+    return `${String(m).padStart(2,"0")}:${(n % 60).toFixed(3).padStart(6,"0")}`;
+  }
+
+  function finiteDuration(audio) {
+    return audio && Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0;
+  }
+
+  function paintTimeline(seek, duration, start, end) {
+    const a = duration ? Math.min(100, Math.max(0, 100 * start / duration)) : 0;
+    const b = duration && end != null ? Math.min(100, Math.max(a, 100 * end / duration)) : a;
+    seek.style.background = end != null && duration
+      ? `linear-gradient(to right, #2b3955 ${a}%, #35c77a ${a}%, #35c77a ${b}%, #2b3955 ${b}%)` : "";
+  }
+
+  function startSelectedLayer(layer) {
+    if (!layer || layer.segmentEnd == null) return;
+    if (layer.segmentLoop || (layer.segmentPlayback &&
+        (layer.audio.currentTime < layer.segmentStart || layer.audio.currentTime >= layer.segmentEnd)))
+      layer.audio.currentTime = layer.segmentStart || 0;
+  }
+
+  function syncLayerTransport(name) {
+    const layer = state.layers[name], audio = layer && layer.audio, seek = $("seek" + name);
+    if (!audio || !seek) return;
+    const d = finiteDuration(audio);
+    seek.max = String(d || 1); seek.disabled = !d;
+    seek.value = String(Math.min(audio.currentTime || 0, d || 0));
+    $("time"+name).textContent = `${formatPrecise(audio.currentTime)} / ${d ? formatPrecise(d) : "--"}`;
+    $("seg"+name).textContent = `Start ${formatPrecise(layer.segmentStart || 0)} → End ${layer.segmentEnd == null ? "--" : formatPrecise(layer.segmentEnd)}`;
+    $("segLoop"+name).textContent = `Loop Selection: ${layer.segmentLoop ? "On" : "Off"}`;
+    paintTimeline(seek, d, layer.segmentStart || 0, layer.segmentEnd);
+  }
+
+  function teleportToMix() {
+    $("playAll").scrollIntoView({behavior:"smooth", block:"center"});
+    $("playAll").focus({preventScroll:true});
+  }
+  document.querySelectorAll(".teleportMix").forEach(button => button.addEventListener("click", teleportToMix));
+
+  function installLayerTransport(name) {
+    const status = $("layer" + name + "Status");
+    const layerBox = status && status.closest(".layer");
+    if (!layerBox || $("seek" + name)) return;
+    const wrap = document.createElement("div");
+    wrap.style.marginTop = "10px";
+    wrap.innerHTML = `<div class="small"><strong id="time${name}">00:00.000 / --</strong></div><input id="seek${name}" type="range" min="0" max="1" step="0.001" value="0" style="width:100%"><div class="row" style="margin-top:6px;"><button id="in${name}">Set Start</button><button id="out${name}">Set End</button><button id="segLoop${name}">Loop Selection: Off</button><span id="seg${name}" class="small">Start 00:00.000 → End --</span></div>`;
+    layerBox.appendChild(wrap);
+    setupLayer(name);
+    const layer = state.layers[name], audio = layer.audio, seek = $("seek" + name);
+    audio.addEventListener("loadedmetadata", () => syncLayerTransport(name));
+    audio.addEventListener("durationchange", () => syncLayerTransport(name));
+    audio.addEventListener("play", () => startSelectedLayer(layer));
+    audio.addEventListener("timeupdate", () => {
+      if (layer.segmentEnd != null && audio.currentTime >= layer.segmentEnd) {
+        if (layer.segmentLoop) audio.currentTime = layer.segmentStart || 0;
+        else if (audio.currentTime < finiteDuration(audio) - 0.05) audio.pause();
+      }
+      if (!seek.matches(":active")) syncLayerTransport(name);
+    });
+    seek.addEventListener("input", () => { if (finiteDuration(audio)) audio.currentTime = Number(seek.value); syncLayerTransport(name); });
+    $("in"+name).addEventListener("click", () => {
+      layer.segmentStart = audio.currentTime || 0;
+      if (layer.segmentEnd != null && layer.segmentEnd <= layer.segmentStart) layer.segmentEnd = null;
+      syncLayerTransport(name);
+    });
+    $("out"+name).addEventListener("click", () => {
+      layer.segmentEnd = audio.currentTime || 0;
+      if (layer.segmentEnd < layer.segmentStart) [layer.segmentStart, layer.segmentEnd] = [layer.segmentEnd, layer.segmentStart];
+      syncLayerTransport(name);
+    });
+    $("segLoop"+name).addEventListener("click", () => {
+      layer.segmentLoop = !layer.segmentLoop;
+      audio.loop = !layer.segmentLoop && Boolean($("loop"+name)?.checked);
+      if (layer.segmentLoop && layer.segmentEnd != null) audio.currentTime = layer.segmentStart || 0;
+      syncLayerTransport(name);
+    });
+    syncLayerTransport(name);
+  }
+
+  const PRESET_KEY = "tri-presets-v1";
+  function readPresets(){ try { return JSON.parse(localStorage.getItem(PRESET_KEY) || "[]"); } catch { return []; } }
+  function writePresets(items){ localStorage.setItem(PRESET_KEY, JSON.stringify(items)); }
+
+  async function getRecordingById(id) {
+    const db = await openDatabase();
+    try {
+      return await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readonly");
+        const request = tx.objectStore(STORE).get(id);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    } finally { db.close(); }
+  }
+
+  function renderPresets(){
+    const host = $("presetsList"); if (!host) return; const presets = readPresets();
+    if (!presets.length){ host.innerHTML = `<div class="small">No presets saved yet.</div>`; return; }
+    host.innerHTML = "";
+    presets.forEach(p => {
+      const card = document.createElement("div"); card.className = "recording-card";
+      const title = document.createElement("strong"); title.textContent = p.title;
+      const meta = document.createElement("div"); meta.className = "small"; meta.textContent = `${new Date(p.createdAt).toLocaleString()} • ${p.layers.length} Library-backed layer(s)`;
+      const row = document.createElement("div"); row.className = "row"; row.style.marginTop="8px";
+      const load = document.createElement("button"); load.textContent="Load Preset";
+      load.addEventListener("click", async () => { for (const spec of p.layers){ const rec=await getRecordingById(spec.recordingId); if (!rec) continue; if (!await loadLayerFromBlob(spec.name, rec.audioBlob, rec.id, rec.title)) continue; $("volume"+spec.name).value=String(spec.volume); setupLayer(spec.name); state.layers[spec.name].gain.gain.value=spec.volume; $("loop"+spec.name).checked=spec.loop; state.layers[spec.name].audio.loop=spec.loop; state.layers[spec.name].segmentStart=spec.segmentStart||0; state.layers[spec.name].segmentEnd=spec.segmentEnd ?? null; state.layers[spec.name].segmentLoop=Boolean(spec.segmentLoop); state.layers[spec.name].segmentPlayback=Boolean(spec.segmentPlayback); state.layers[spec.name].sourceClipId=spec.clipId||null; state.layers[spec.name].audio.loop=spec.loop && !spec.segmentLoop; syncLayerTransport(spec.name); } activePresetId=p.id; saveActiveSession(true); renderFieldStatus(); });
+      const del=document.createElement("button"); del.textContent="Delete Preset"; del.className="danger"; del.addEventListener("click",()=>{ if(!confirm("Delete this preset? Recordings stay safe in Library.")) return; writePresets(readPresets().filter(x=>x.id!==p.id)); renderPresets(); });
+      row.append(load,del); card.append(title,meta,row); host.appendChild(card);
+    });
+  }
+
+  $("savePreset")?.addEventListener("click", () => {
+    const backed = Object.entries(state.layers).filter(([,l]) => l.loaded && l.sourceRecordingId);
+    if (!backed.length){ alert("No Library-backed layers are loaded yet. Load saved recordings into A/B/C/D first; external files are not copied into preset storage."); return; }
+    const title = prompt("Preset name", `TRI Preset ${new Date().toLocaleTimeString()}`); if (!title) return;
+    const preset={id:makeId(),title:title.trim(),createdAt:new Date().toISOString(),layers:backed.map(([name,l])=>({name,recordingId:l.sourceRecordingId,volume:Number($("volume"+name).value),loop:Boolean($("loop"+name).checked),segmentStart:l.segmentStart||0,segmentEnd:l.segmentEnd,segmentLoop:Boolean(l.segmentLoop),segmentPlayback:Boolean(l.segmentPlayback),clipId:l.sourceClipId||null}))};
+    const items=readPresets(); items.unshift(preset); writePresets(items); renderPresets();
+  });
+
+  let auditionAudio = null, auditionUrl = null;
+  function stopAudition() {
+    if (auditionAudio) auditionAudio.pause();
+    auditionAudio = null;
+    if (auditionUrl) URL.revokeObjectURL(auditionUrl);
+    auditionUrl = null;
+  }
+  $("auditionLibrary")?.addEventListener("click", async () => {
+    const recordings = await getAllRecordings();
+    if (!recordings.length) return;
+    let i = 0; stopAudition();
+    const next = () => {
+      stopAudition();
+      if (i >= recordings.length) { $("auditionStatus").textContent = "Finished"; return; }
+      const r = recordings[i++];
+      auditionUrl = URL.createObjectURL(r.audioBlob);
+      auditionAudio = new Audio(auditionUrl);
+      $("auditionStatus").textContent = `Playing ${r.title}`;
+      auditionAudio.addEventListener("ended", next, {once:true});
+      auditionAudio.play().catch(error => {
+        fieldEvent("audition-failed", `${error.name}: ${error.message}`);
+        $("auditionStatus").textContent = "Playback blocked";
+      });
+    };
+    next();
+  });
+  $("stopAudition")?.addEventListener("click", () => { stopAudition(); $("auditionStatus").textContent = "Stopped"; });
+
+  ["A","B","C","D"].forEach(installLayerTransport);
+  renderPresets();
+
+  /* -------------------------------------------------------
      FILE INPUTS
      ------------------------------------------------------- */
 
@@ -3058,10 +3240,8 @@ async function renderRecordings() {
 
             if (file) {
 
-              loadLayer(
-                name,
-                file
-              );
+              loadLayer(name, file, null, file.name);
+              event.target.value = "";
 
             }
 
@@ -3083,6 +3263,11 @@ async function renderRecordings() {
           () =>
             stopLayer(name)
         );
+
+      $("loop" + name).addEventListener("change", event => {
+        setupLayer(name);
+        state.layers[name].audio.loop = event.target.checked && !state.layers[name].segmentLoop;
+      });
 
     });
 
@@ -3139,11 +3324,11 @@ async function renderRecordings() {
 
     try {
 
-      ensureAudioContext();
+      if (!window.AudioContext && !window.webkitAudioContext) throw new Error("Web Audio unavailable");
 
       setDiagnostic(
         "diagAudio",
-        "Ready",
+        state.audioContext?.state || "Available",
         "ok"
       );
 
@@ -3265,7 +3450,8 @@ async function renderRecordings() {
 
     try {
 
-      await openDatabase();
+      const db = await openDatabase();
+      db.close();
 
       setDiagnostic(
         "diagStorage",
@@ -3298,64 +3484,322 @@ async function renderRecordings() {
      ------------------------------------------------------- */
 
   async function registerPWA() {
-
-    if (
-      !("serviceWorker" in navigator)
-    ) {
-
-      setStatus(
-        "pwaStatus",
-        "Service worker unavailable",
-        "warning"
-      );
-
+    if (!("serviceWorker" in navigator)) {
+      setStatus("pwaStatus", "Service worker unavailable", "warning");
+      fieldEvent("pwa", "Service worker unavailable");
       return;
-
     }
-
-
     try {
-
-      await navigator.serviceWorker
-        .register(
-          "./sw.js"
-        );
-
-
-      setStatus(
-        "pwaStatus",
-        "PWA ready",
-        "ready"
-      );
-
-
-      setDiagnostic(
-        "diagPwa",
-        "Registered",
-        "ok"
-      );
-
+      const registration = await navigator.serviceWorker.register("./sw.js", {updateViaCache:"none"});
+      const button = $("applyPwaUpdate");
+      const showUpdate = () => {
+        if (registration.waiting && navigator.serviceWorker.controller) {
+          button.hidden = false;
+          fieldEvent("pwa-update", "New shell ready; activate when session is safe");
+        }
+      };
+      showUpdate();
+      registration.addEventListener("updatefound", () => {
+        registration.installing?.addEventListener("statechange", showUpdate);
+      });
+      let activationRequested = false;
+      button.addEventListener("click", () => {
+        if (state.recorder?.state === "recording" || queueRunning ||
+            Object.values(state.layers).some(layer => layer.loading)) {
+          fieldEvent("pwa-update", "Finish recording/loading before updating"); return;
+        }
+        saveActiveSession(true);
+        activationRequested = true;
+        registration.waiting?.postMessage({type:"ACTIVATE_UPDATE"});
+      });
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (!activationRequested || refreshing) { fieldEvent("pwa", "Worker changed; no forced reload"); return; }
+        refreshing = true; saveActiveSession(true); location.reload();
+      });
+      registration.update().catch(error => fieldEvent("pwa-update-check", error.message));
+      setStatus("pwaStatus", "PWA shell registered", "ready");
+      setDiagnostic("diagPwa", "Registered", "ok");
+      fieldEvent("pwa", `scope ${registration.scope}`);
     } catch (error) {
-
-      console.error(
-        "Service worker error",
-        error
-      );
-
-      setStatus(
-        "pwaStatus",
-        "PWA registration failed",
-        "warning"
-      );
-
-      setDiagnostic(
-        "diagPwa",
-        "Registration failed",
-        "warn"
-      );
-
+      fieldEvent("pwa-error", error.message);
+      setStatus("pwaStatus", "PWA registration failed", "warning");
+      setDiagnostic("diagPwa", "Registration failed", "warn");
     }
+  }
 
+  /* V4.2 field reliability: one engine, one Library, lightweight session metadata. */
+  const FIELD_BUILD = "4.2.0";
+  const SESSION_KEY = "tri-active-session-v1";
+  const FIELD_LOG_KEY = "tri-field-log-v1";
+  const fieldQueue = [];
+  let queueRunning = false;
+  let restoringSession = false;
+  let activePresetId = null;
+  let lastSessionWrite = 0;
+  let hiddenPlaybackSnapshot = null;
+
+  function fieldEvent(kind, detail = "") {
+    const entry = {at: new Date().toISOString(), kind, detail: String(detail).slice(0, 180)};
+    const panel = $("fieldLog");
+    if (panel) panel.textContent = `${entry.at.slice(11,19)} ${kind}: ${entry.detail}\n` + panel.textContent.slice(0, 2500);
+    try {
+      const previous = JSON.parse(localStorage.getItem(FIELD_LOG_KEY) || "[]");
+      localStorage.setItem(FIELD_LOG_KEY, JSON.stringify([entry, ...previous].slice(0, 30)));
+    } catch (_) {}
+    renderFieldStatus();
+  }
+
+  function describeMediaFailure(error, audio) {
+    const code = audio && audio.error && audio.error.code;
+    if (code === 4 || error?.name === "NotSupportedError") return "Unsupported media/codec";
+    if (code === 3) return "Media decode failure";
+    if (code === 2) return "Media network/resource failure";
+    if (code === 1 || error?.name === "AbortError") return "Media load aborted";
+    if (error?.name === "QuotaExceededError") return "Memory/storage resource problem";
+    if (error?.message === "metadata timeout") return "Media metadata timed out; codec, resource or PWA lifecycle issue";
+    if (error?.message === "stale object URL") return "Stale/revoked object URL";
+    return `Other load failure: ${error?.message || "unknown"}`;
+  }
+
+  function waitForMetadata(audio, url, timeoutMs = 45000) {
+    return new Promise((resolve, reject) => {
+      let timer;
+      const cleanup = () => {
+        clearTimeout(timer);
+        audio.removeEventListener("loadedmetadata", onReady);
+        audio.removeEventListener("error", onError);
+        audio.removeEventListener("abort", onAbort);
+      };
+      const onReady = () => { cleanup(); resolve(); };
+      const onError = () => { cleanup(); reject(audio.error || new Error("media error")); };
+      const onAbort = () => { cleanup(); reject(new DOMException("Media aborted", "AbortError")); };
+      audio.addEventListener("loadedmetadata", onReady, {once:true});
+      audio.addEventListener("error", onError, {once:true});
+      audio.addEventListener("abort", onAbort, {once:true});
+      timer = setTimeout(() => { cleanup(); reject(new Error("metadata timeout")); }, timeoutMs);
+      audio.src = url;
+      audio.load();
+    });
+  }
+
+  async function resumeAudioForGesture() {
+    const ctx = ensureAudioContext();
+    if (ctx.state !== "running") {
+      fieldEvent("audio-context", `resume requested from ${ctx.state}`);
+      await ctx.resume();
+    }
+    if (ctx.state !== "running") throw new Error(`AudioContext ${ctx.state}; tap Play again`);
+    return ctx;
+  }
+
+  function snapshotActiveSession() {
+    return {
+      schema: 1, build: FIELD_BUILD, savedAt: new Date().toISOString(),
+      fieldMode: document.body.classList.contains("field-mode"),
+      presetId: activePresetId,
+      masterVolume: Number($("masterVolume").value),
+      layers: ["A","B","C","D"].map(name => {
+        const layer = state.layers[name];
+        return {
+          name, recordingId: layer.sourceRecordingId || null, clipId: layer.sourceClipId || null,
+          externalName: layer.loaded && !layer.sourceRecordingId ? (layer.externalName || "Unsaved media") : null,
+          volume: Number($("volume"+name).value),
+          loop: Boolean($("loop"+name).checked),
+          start: Number(layer.segmentStart) || 0,
+          end: Number.isFinite(layer.segmentEnd) ? layer.segmentEnd : null,
+          selectionLoop: Boolean(layer.segmentLoop),
+          segmentPlayback: Boolean(layer.segmentPlayback),
+          position: layer.audio && Number.isFinite(layer.audio.currentTime) ? layer.audio.currentTime : 0
+        };
+      })
+    };
+  }
+
+  function saveActiveSession(force = false) {
+    if (restoringSession) return;
+    const now = Date.now();
+    if (!force && now - lastSessionWrite < 750) return;
+    lastSessionWrite = now;
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(snapshotActiveSession()));
+      $("restoreSession").hidden = false;
+    } catch (error) { fieldEvent("session-save-error", error.message); }
+  }
+
+  async function restoreActiveSession() {
+    let saved;
+    try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || "null"); }
+    catch (error) { fieldEvent("restore-error", "Invalid session state"); return; }
+    if (!saved || saved.schema !== 1 || !Array.isArray(saved.layers)) {
+      fieldEvent("restore", "No compatible session checkpoint"); return;
+    }
+    restoringSession = true;
+    const missing = [];
+    try {
+      document.body.classList.toggle("field-mode", Boolean(saved.fieldMode));
+      $("fieldToggle").textContent = saved.fieldMode ? "Exit Field Mode" : "Field Mode";
+      $("masterVolume").value = String(saved.masterVolume ?? 0.8);
+      if (state.masterGain) state.masterGain.gain.value = Number($("masterVolume").value);
+      activePresetId = saved.presetId || null;
+      for (const spec of saved.layers) {
+        if (!state.layers[spec.name]) continue;
+        $("volume"+spec.name).value = String(spec.volume ?? 0.8);
+        $("loop"+spec.name).checked = Boolean(spec.loop);
+        if (spec.recordingId) {
+          const rec = await getRecordingById(spec.recordingId);
+          if (!rec?.audioBlob) { missing.push(`${spec.name}: Library source missing`); continue; }
+          const ok = await loadLayer(spec.name, rec.audioBlob, rec.id, rec.title);
+          if (!ok) { missing.push(`${spec.name}: source could not load`); continue; }
+          const layer = state.layers[spec.name];
+          layer.segmentStart = spec.start || 0; layer.segmentEnd = spec.end ?? null;
+          layer.sourceClipId = spec.clipId || null;
+          layer.segmentLoop = Boolean(spec.selectionLoop);
+          layer.segmentPlayback = Boolean(spec.segmentPlayback);
+          layer.audio.loop = Boolean(spec.loop) && !layer.segmentLoop;
+          layer.gain.gain.value = Number($("volume"+spec.name).value);
+          if (Number.isFinite(spec.position) && spec.position >= 0)
+            layer.audio.currentTime = Math.min(spec.position, finiteDuration(layer.audio) || spec.position);
+          syncLayerTransport(spec.name);
+        } else if (spec.externalName) missing.push(`${spec.name}: reselect ${spec.externalName}`);
+      }
+      fieldEvent("restore", missing.length ? `Restored with ${missing.join("; ")}` : "Workspace restored; tap Play to resume");
+    } catch (error) {
+      fieldEvent("restore-error", error.message);
+    } finally {
+      restoringSession = false; renderFieldStatus();
+    }
+  }
+
+  function renderFieldStatus() {
+    const host = $("fieldLayers");
+    if (!host) return;
+    host.textContent = ["A","B","C","D"].map(name =>
+      `${name}: ${state.layers[name].loaded ? (state.layers[name].externalName || "Library source") : "Empty"}`).join("  •  ");
+  }
+
+  function renderQueue() {
+    const host = $("loadQueueStatus");
+    if (host) host.textContent = queueRunning || fieldQueue.length
+      ? `${fieldQueue.length} waiting${queueRunning ? " • loading one file" : ""}`
+      : "Queue idle";
+  }
+
+  function enqueueFiles(files) {
+    const selected = Array.from(files || []);
+    if (!selected.length) { fieldEvent("picker", "No files selected or picker cancelled"); return; }
+    selected.forEach(file => fieldQueue.push(file));
+    fieldEvent("picker", `${selected.length} file(s) queued`);
+    renderQueue(); runQueue();
+  }
+
+  async function runQueue() {
+    if (queueRunning) return;
+    queueRunning = true; renderQueue();
+    try {
+      while (fieldQueue.length) {
+        const name = ["A","B","C","D"].find(n => !state.layers[n].loaded && !state.layers[n].loading);
+        if (!name) { fieldEvent("queue-paused", "All layers occupied; choose A/B/C/D to replace a layer"); break; }
+        const file = fieldQueue.shift();
+        renderQueue();
+        await loadLayer(name, file, null, file.name);
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+    } finally { queueRunning = false; renderQueue(); }
+  }
+
+  function prepareFieldControls() {
+    $("fieldToggle").addEventListener("click", () => {
+      document.body.classList.toggle("field-mode");
+      $("fieldToggle").textContent = document.body.classList.contains("field-mode") ? "Exit Field Mode" : "Field Mode";
+      saveActiveSession(true);
+    });
+    $("fieldPlay").addEventListener("click", playAll);
+    $("fieldStop").addEventListener("click", stopAll);
+    $("fieldRecord").addEventListener("click", () => $("startRecording").click());
+    $("fieldStopRecord").addEventListener("click", () => $("stopRecording").click());
+    $("downloadUnsaved").addEventListener("click", () => {
+      if (!state.currentBlob) return;
+      const url = URL.createObjectURL(state.currentBlob);
+      const a = document.createElement("a"); a.href = url;
+      a.download = `TRI_unsaved_${Date.now()}.${recordingExtension(state.currentBlob.type)}`;
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    });
+    $("fieldTeleport").addEventListener("click", teleportToMix);
+    $("restoreSession").addEventListener("click", restoreActiveSession);
+    $("fieldFiles").addEventListener("click", () => fieldEvent("picker-open", "Multiple audio selection requested"));
+    $("fieldFiles").addEventListener("cancel", () => fieldEvent("picker", "Multiple selection cancelled"));
+    $("fieldFiles").addEventListener("change", event => {
+      enqueueFiles(event.target.files);
+      event.target.value = ""; // same file can be selected again after a failed load
+    });
+    ["A","B","C","D"].forEach(name => {
+      $("fieldAssign"+name).addEventListener("click", async () => {
+        if (fieldQueue.length) {
+          const file = fieldQueue.shift(); renderQueue();
+          const ok = await loadLayer(name, file, null, file.name);
+          if (!ok) fieldQueue.unshift(file);
+          renderQueue(); runQueue();
+        } else $("file"+name).click();
+      });
+      $("file"+name).addEventListener("click", () => fieldEvent("picker-open", `Layer ${name}`));
+      $("file"+name).addEventListener("cancel", () => fieldEvent("picker", `Layer ${name}: cancelled`));
+    });
+    $("fieldNext").addEventListener("click", () => fieldQueue.length ? runQueue() : $("fieldFiles").click());
+    $("restoreSession").hidden = !localStorage.getItem(SESSION_KEY);
+    try {
+      const log = JSON.parse(localStorage.getItem(FIELD_LOG_KEY) || "[]");
+      $("fieldLog").textContent = log.map(e => `${e.at.slice(11,19)} ${e.kind}: ${e.detail}`).join("\n");
+    } catch (_) { $("fieldLog").textContent = "Previous diagnostics unavailable"; }
+    document.addEventListener("change", event => {
+      if (/^(volume|loop)[ABCD]$/.test(event.target.id) || event.target.id === "masterVolume") saveActiveSession(true);
+    });
+    document.addEventListener("input", event => {
+      if (/^volume[ABCD]$/.test(event.target.id) || event.target.id === "masterVolume") saveActiveSession();
+    });
+    document.addEventListener("click", event => {
+      if (/^(in|out|segLoop|stop|play)[ABCD]$/.test(event.target.id)) saveActiveSession(true);
+    });
+    window.addEventListener("unhandledrejection", event => fieldEvent("promise-error", event.reason?.message || String(event.reason)));
+    window.addEventListener("error", event => fieldEvent("script-error", event.message));
+    document.addEventListener("visibilitychange", () => {
+      saveActiveSession(true);
+      fieldEvent("visibility", `${document.visibilityState}; context ${state.audioContext?.state || "none"}`);
+      if (document.hidden) {
+        hiddenPlaybackSnapshot = {
+          at: Date.now(),
+          layers: ["A","B","C","D"].map(name => ({name, time:state.layers[name].audio?.currentTime || 0,
+            playing:Boolean(state.layers[name].audio && !state.layers[name].audio.paused)}))
+        };
+      } else if (hiddenPlaybackSnapshot) {
+        const elapsed = Math.round((Date.now() - hiddenPlaybackSnapshot.at) / 1000);
+        const movement = hiddenPlaybackSnapshot.layers.filter(x => x.playing).map(x =>
+          `${x.name}:${((state.layers[x.name].audio?.currentTime || 0) - x.time).toFixed(1)}s`).join(", ");
+        fieldEvent("background-check", `Hidden ${elapsed}s; position change ${movement || "none playing"}`);
+        hiddenPlaybackSnapshot = null;
+      }
+      if (document.hidden && state.recorder?.state === "recording") {
+        fieldEvent("record-interrupted", "Saving recording as page hides; completion depends on iOS keeping the page alive");
+        stopRecording();
+      }
+      if (!document.hidden && state.audioContext?.state !== "running" &&
+          Object.values(state.layers).some(layer => layer.loaded))
+        setStatus("audioStatus", "Audio context paused; tap Play to resume", "warning");
+    });
+    window.addEventListener("pagehide", event => { saveActiveSession(true); fieldEvent("pagehide", `persisted=${event.persisted}`); });
+    window.addEventListener("pageshow", event => { fieldEvent("pageshow", `persisted=${event.persisted}; context ${state.audioContext?.state || "none"}`); });
+    document.addEventListener("freeze", () => { saveActiveSession(true); fieldEvent("freeze", "document frozen"); });
+    document.addEventListener("resume", () => fieldEvent("resume", "document resumed"));
+    if ("mediaSession" in navigator) {
+      try {
+        if ("MediaMetadata" in window) navigator.mediaSession.metadata = new MediaMetadata({title:"TRI Layers", artist:"TRI"});
+        navigator.mediaSession.setActionHandler("play", () => playAll());
+        navigator.mediaSession.setActionHandler("pause", () => stopAll());
+        fieldEvent("media-session", "Controls available where supported");
+      } catch (error) { fieldEvent("media-session", `Unavailable: ${error.message}`); }
+    }
+    renderFieldStatus(); renderQueue();
   }
 
 
@@ -3364,6 +3808,7 @@ async function renderRecordings() {
      ------------------------------------------------------- */
 
   async function init() {
+    prepareFieldControls();
 
     /*
       Do not automatically open the microphone.
@@ -3388,7 +3833,8 @@ async function renderRecordings() {
 
     try {
 
-      await openDatabase();
+      const db = await openDatabase();
+      db.close();
 
     } catch (error) {
 
