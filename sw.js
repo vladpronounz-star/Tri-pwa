@@ -1,5 +1,5 @@
 /* TRI V4.2 shell cache. Never opens, migrates, or deletes IndexedDB. */
-const SHELL_CACHE = "tri-shell-v4.2.0";
+const SHELL_CACHE = "tri-shell-v4.2.1";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", event => {

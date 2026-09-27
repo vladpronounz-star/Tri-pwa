@@ -11,7 +11,7 @@
 
   <link rel="manifest" href="manifest.json">
 
-  <title>TRI V4.2 — Field Reliability</title>
+  <title>TRI V4.2.1 — Mobile Field Fix</title>
 
   <style>
     :root {
@@ -400,12 +400,38 @@ css
     .field-dock button, .field-dock .file-label { min-height:48px; min-width:54px; touch-action:manipulation; }
     .field-dock input[type=file] { position:absolute; width:1px; height:1px; opacity:0; }
     #fieldLog { white-space:pre-wrap; font:11px/1.4 monospace; max-height:130px; overflow:auto; background:#0b1020; padding:8px; }
-    body.field-mode .field-dock { position:sticky; top:0; }
-    body.field-mode .field-dock button { min-height:56px; font-size:16px; }
+    /* Field Mode: compact, non-sticky controls so the mixer is never covered. */
+    body.field-mode .app { padding: max(6px, env(safe-area-inset-top)) 8px max(16px, env(safe-area-inset-bottom)); }
+    body.field-mode .header, body.field-mode .status-bar { display:none; }
+    body.field-mode .field-dock { position:relative; top:auto; z-index:auto; margin:0 0 8px; padding:8px; border-radius:10px; }
+    body.field-mode .field-dock .field-row { margin:4px 0; gap:5px; }
+    body.field-mode .field-dock button { min-height:38px; min-width:0; font-size:13px; padding:6px 9px; border-radius:8px; }
     body.field-mode .field-dock #fieldRecord { background:var(--danger); color:#fff; }
+    body.field-mode #fieldTeleport, body.field-mode #fieldStopRecord { display:none; }
+    body.field-mode #fieldLayers { display:none; }
     body.field-mode .panel:not(.field-core) { display:none; }
-    body.field-mode .panel.field-core { padding:12px; }
-    body.field-mode .header { display:none; }
+    body.field-mode .panel.field-core { padding:8px; }
+    body.field-mode .panel.field-core > .notice { display:none; }
+    body.field-mode .panel.field-core .layer { padding:8px; margin:7px 0; }
+    body.field-mode .panel.field-core .layer-controls { gap:5px; }
+    body.field-mode .panel.field-core .layer-controls button,
+    body.field-mode .panel.field-core .layer-controls .file-label { min-height:36px; padding:5px 8px; font-size:12px; }
+    .field-mini-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; margin:6px 0; }
+    .field-mini { min-width:0; border:1px solid var(--border); background:var(--panel2); border-radius:9px; padding:7px; }
+    .field-mini strong { font-size:13px; }
+    .field-mini .mini-name { display:block; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; color:var(--muted); font-size:11px; }
+    .field-mini .mini-state { color:var(--good); font-size:11px; }
+    .field-mini .mini-actions { display:flex; align-items:center; gap:4px; margin-top:4px; }
+    .field-mini .mini-actions button { flex:1; }
+    .field-mini .mini-actions label { display:flex; gap:3px; align-items:center; font-size:11px; }
+    .field-mini .mini-actions input { width:16px; height:16px; }
+    .field-dock details { margin-top:5px; }
+    body.field-mode .field-dock > details:not(#fieldMore) { display:none; }
+    body.field-mode #fieldMore:not([open]) ~ #loadQueueStatus { font-size:11px; }
+    @media(max-width:390px) {
+      body.field-mode .field-dock button { font-size:12px; padding:5px 7px; }
+      body.field-mode .field-mini .mini-actions button { font-size:12px; }
+    }
   </style>
 </head>
 
@@ -433,8 +459,10 @@ css
   <section class="field-dock" aria-label="Field controls">
     <div class="field-row"><button id="fieldToggle">Field Mode</button><button id="restoreSession" hidden>Restore Last Session</button><button id="applyPwaUpdate" hidden>Update TRI</button><button id="fieldTeleport">↗ Teleport to Mix</button></div>
     <div id="fieldLayers" class="small" aria-live="polite">A: Empty • B: Empty • C: Empty • D: Empty</div>
-    <div class="field-row"><button id="fieldPlay" class="primary">▶ Play Layers</button><button id="fieldStop">■ Stop</button><button id="fieldRecord">● Record</button><button id="fieldStopRecord">■ Stop Record</button><button id="downloadUnsaved" hidden>Download Unsaved Recording</button></div>
-    <div class="field-row"><input id="fieldFiles" type="file" accept="audio/*,video/mp4,video/webm" multiple><button id="fieldNext">Select Multiple → Next Free</button><button id="fieldAssignA">A</button><button id="fieldAssignB">B</button><button id="fieldAssignC">C</button><button id="fieldAssignD">D</button></div>
+    <div id="fieldMiniGrid" class="field-mini-grid" aria-label="Four layer controls"></div>
+    <div class="field-row"><button id="fieldPlay" class="primary">▶ Play All</button><button id="fieldLoopAll">↻ Loop All</button><button id="fieldStop">■ Stop All</button><button id="fieldRecord">● Record</button><button id="fieldStopRecord">■ Stop Record</button><button id="downloadUnsaved" hidden>Download Unsaved Recording</button></div>
+    <div class="field-row"><input id="fieldFiles" type="file" accept="audio/*,video/mp4,video/webm" multiple><button id="fieldNext">＋ Quick Add</button></div>
+    <details id="fieldMore"><summary>More: replace layer / diagnostics</summary><div class="field-row"><button id="fieldAssignA">Replace A</button><button id="fieldAssignB">Replace B</button><button id="fieldAssignC">Replace C</button><button id="fieldAssignD">Replace D</button></div></details>
     <div id="loadQueueStatus" class="small" role="status">Queue idle</div>
     <details><summary>Field diagnostics</summary><div class="small">Events survive a restart. Media files are not stored in this log.</div><pre id="fieldLog"></pre></details>
   </section>
@@ -1320,6 +1348,8 @@ css
 
     audio.preload = "auto";
     audio.loop = Boolean($("loop" + name)?.checked);
+    for (const eventName of ["play","playing","pause","ended","waiting","error"])
+      audio.addEventListener(eventName, renderFieldStatus);
 
     /*
       Do NOT autoplay.
@@ -3529,7 +3559,7 @@ async function updateRecordingItem(recording) {
   }
 
   /* V4.2 field reliability: one engine, one Library, lightweight session metadata. */
-  const FIELD_BUILD = "4.2.0";
+  const FIELD_BUILD = "4.2.1";
   const SESSION_KEY = "tri-active-session-v1";
   const FIELD_LOG_KEY = "tri-field-log-v1";
   const fieldQueue = [];
@@ -3671,11 +3701,64 @@ async function updateRecordingItem(recording) {
     }
   }
 
+  function layerPlaybackState(name) {
+    const layer = state.layers[name];
+    if (!layer?.loaded || !layer.audio) return "EMPTY";
+    if (layer.loading) return "LOADING";
+    if (layer.audio.ended) return "ENDED";
+    return layer.audio.paused ? "PAUSED" : "PLAYING";
+  }
+
   function renderFieldStatus() {
     const host = $("fieldLayers");
     if (!host) return;
     host.textContent = ["A","B","C","D"].map(name =>
       `${name}: ${state.layers[name].loaded ? (state.layers[name].externalName || "Library source") : "Empty"}`).join("  •  ");
+    for (const name of ["A","B","C","D"]) {
+      const layer = state.layers[name];
+      const mini = $("fieldMini" + name);
+      if (!mini) continue;
+      const stateText = mini.querySelector(".mini-state");
+      const title = mini.querySelector(".mini-name");
+      const play = mini.querySelector("button");
+      const loop = mini.querySelector("input");
+      stateText.textContent = layerPlaybackState(name);
+      title.textContent = layer.loaded ? (layer.externalName || "Library source") : "No source";
+      play.textContent = layer.audio && !layer.audio.paused ? "Ⅱ Pause" : "▶ Play";
+      play.disabled = !layer.loaded;
+      loop.checked = Boolean($("loop"+name)?.checked);
+    }
+    const loaded = ["A","B","C","D"].filter(n => state.layers[n].loaded);
+    const allLooped = loaded.length > 0 && loaded.every(n => $("loop"+n).checked);
+    $("fieldLoopAll").textContent = allLooped ? "↻ Unloop All" : "↻ Loop All";
+    $("fieldRecord").textContent = state.mediaRecorder?.state === "recording" ? "● Recording" : "● Record";
+  }
+
+  function prepareMiniMixer() {
+    const host = $("fieldMiniGrid");
+    for (const name of ["A","B","C","D"]) {
+      const tile = document.createElement("div");
+      tile.className = "field-mini"; tile.id = "fieldMini" + name;
+      tile.innerHTML = `<strong>${name}</strong> <span class="mini-state">EMPTY</span><span class="mini-name">No source</span><div class="mini-actions"><button type="button">▶ Play</button><label><input type="checkbox" aria-label="Loop layer ${name}"> Loop</label></div>`;
+      tile.querySelector("button").addEventListener("click", () => {
+        const audio = state.layers[name].audio;
+        if (!audio || !state.layers[name].loaded) return;
+        if (audio.paused) playLayer(name); else audio.pause();
+        renderFieldStatus();
+      });
+      tile.querySelector("input").addEventListener("change", event => {
+        const original = $("loop"+name);
+        original.checked = event.target.checked;
+        original.dispatchEvent(new Event("change", {bubbles:true}));
+        renderFieldStatus();
+      });
+      host.append(tile);
+    }
+    // Audio events reflect natural endings and browser-initiated pauses.
+    for (const name of ["A","B","C","D"]) {
+      // Attach when a layer is actually created, after the normal user gesture.
+    }
+    renderFieldStatus();
   }
 
   function renderQueue() {
@@ -3709,6 +3792,19 @@ async function updateRecordingItem(recording) {
   }
 
   function prepareFieldControls() {
+    prepareMiniMixer();
+    $("fieldLoopAll").addEventListener("click", () => {
+      const loaded = ["A","B","C","D"].filter(n => state.layers[n].loaded);
+      if (!loaded.length) { fieldEvent("loop-all", "Load at least one layer first"); return; }
+      const enable = !loaded.every(n => $("loop"+n).checked);
+      for (const name of loaded) {
+        const checkbox = $("loop"+name);
+        checkbox.checked = enable;
+        checkbox.dispatchEvent(new Event("change", {bubbles:true}));
+      }
+      fieldEvent("loop-all", enable ? "All loaded layers loop" : "Loop disabled for all loaded layers");
+      saveActiveSession(true); renderFieldStatus();
+    });
     $("fieldToggle").addEventListener("click", () => {
       document.body.classList.toggle("field-mode");
       $("fieldToggle").textContent = document.body.classList.contains("field-mode") ? "Exit Field Mode" : "Field Mode";
