@@ -432,6 +432,14 @@ css
       body.field-mode .field-dock button { font-size:12px; padding:5px 7px; }
       body.field-mode .field-mini .mini-actions button { font-size:12px; }
     }
+
+    /* V4.3.1 Seamless Field Video */
+    .video-capture-panel{margin-top:8px;padding:10px;border:1px solid #334155;border-radius:12px;background:#0f172a;}
+    .video-capture-panel video{width:100%;max-height:42vh;background:#000;border-radius:10px;object-fit:contain;}
+    .video-capture-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px;}
+    .video-capture-meta{font-size:11px;opacity:.8;margin-top:6px;}
+    .video-live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-right:5px;}
+    body.field-mode .video-capture-panel{display:block;}
   </style>
 </head>
 
@@ -461,6 +469,19 @@ css
     <div id="fieldLayers" class="small" aria-live="polite">A: Empty • B: Empty • C: Empty • D: Empty</div>
     <div id="fieldMiniGrid" class="field-mini-grid" aria-label="Four layer controls"></div>
     <div class="field-row"><button id="fieldPlay" class="primary">▶ Play All</button><button id="fieldLoopAll">↻ Loop All</button><button id="fieldStop">■ Stop All</button><button id="fieldRecord">● Record</button><button id="fieldStopRecord">■ Stop Record</button><button id="downloadUnsaved" hidden>Download Unsaved Recording</button></div>
+    <div class="video-capture-panel" id="fieldVideoPanel">
+      <div class="field-row"><strong>Field Video</strong><span id="videoState" class="small">Camera idle</span></div>
+      <video id="cameraPreview" playsinline muted hidden></video>
+      <video id="videoReplay" playsinline controls hidden></video>
+      <div class="video-capture-actions">
+        <button id="quickVideo" class="primary">● Quick Video</button>
+        <button id="stopVideo" disabled>■ Stop Video</button>
+        <button id="flipCamera">↺ Flip Camera</button>
+        <button id="videoAddNext" disabled>＋ Video → Next Layer</button>
+      </div>
+      <label class="small"><input id="attachLocation" type="checkbox"> Attach location metadata (asks permission)</label>
+      <div id="videoMeta" class="video-capture-meta">Timestamp will be attached automatically. Location is optional.</div>
+    </div>
     <div class="field-row"><input id="fieldFiles" type="file" accept="audio/*,video/mp4,video/webm" multiple><button id="fieldNext">＋ Quick Add</button></div>
     <details id="fieldMore"><summary>More: replace layer / diagnostics</summary><div class="field-row"><button id="fieldAssignA">Replace A</button><button id="fieldAssignB">Replace B</button><button id="fieldAssignC">Replace C</button><button id="fieldAssignD">Replace D</button></div></details>
     <div id="loadQueueStatus" class="small" role="status">Queue idle</div>
@@ -1117,6 +1138,16 @@ css
     currentBlob: null,
 
     currentRecordingUrl: null,
+
+    videoRecorder: null,
+    videoChunks: [],
+    cameraStream: null,
+    cameraFacingMode: "environment",
+    currentVideoBlob: null,
+    currentVideoUrl: null,
+    currentVideoRecordingId: null,
+    videoStartedAt: null,
+    captureMeta: null,
 
     layers: {
 
@@ -2403,6 +2434,204 @@ css
 
 
   /* -------------------------------------------------------
+     V4.3.1 FIELD VIDEO — camera video + TRI digital mix + mic
+     Camera is requested VIDEO-ONLY. The existing Web Audio
+     recordingDestination supplies the final audio track so
+     layers + microphone are embedded without a second mic route.
+     ------------------------------------------------------- */
+
+  function getVideoRecorderMimeType() {
+    if (!window.MediaRecorder) return "";
+    const types = [
+      "video/mp4;codecs=h264,aac",
+      "video/mp4",
+      "video/webm;codecs=vp8,opus",
+      "video/webm"
+    ];
+    for (const type of types) {
+      try { if (MediaRecorder.isTypeSupported(type)) return type; } catch (_) {}
+    }
+    return "";
+  }
+
+  function stopCameraStream() {
+    if (state.cameraStream) state.cameraStream.getTracks().forEach(track => track.stop());
+    state.cameraStream = null;
+    const preview = $("cameraPreview");
+    if (preview) { preview.srcObject = null; preview.hidden = true; }
+  }
+
+  async function openCameraVideoOnly() {
+    stopCameraStream();
+    state.cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: state.cameraFacingMode },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+    const preview = $("cameraPreview");
+    preview.srcObject = state.cameraStream;
+    preview.hidden = false;
+    await preview.play().catch(() => {});
+    return state.cameraStream;
+  }
+
+  function requestCaptureLocation(meta) {
+    if (!$("attachLocation")?.checked || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        meta.location = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracyMeters: pos.coords.accuracy
+        };
+        $("videoMeta").textContent = `Captured ${new Date(meta.capturedAt).toLocaleString()} • location ±${Math.round(pos.coords.accuracy)}m`;
+      },
+      error => fieldEvent("video-location", `Location unavailable: ${error.message}`),
+      {enableHighAccuracy:true, timeout:7000, maximumAge:30000}
+    );
+  }
+
+  async function saveVideoRecording(blob, meta) {
+    const db = await openDatabase();
+    const id = makeId();
+    const item = {
+      id,
+      createdAt: meta?.capturedAt || new Date().toISOString(),
+      type: "tri-video",
+      mediaKind: "video",
+      duration: state.videoStartedAt ? Date.now() - state.videoStartedAt : 0,
+      microphone: true,
+      layers: Object.keys(state.layers).filter(name => state.layers[name].loaded),
+      /* audioBlob is intentionally retained for V1 Library/layer compatibility. */
+      audioBlob: blob,
+      videoBlob: blob,
+      mimeType: blob.type,
+      title: `TRI Video ${new Date().toLocaleString()}`,
+      notes: $("recordingNotes")?.value?.trim() || "",
+      prompt: $("topic")?.value?.trim() || "",
+      mode: $("mode")?.value || "",
+      function: $("function")?.value || "",
+      style: $("style")?.value || "",
+      element: $("element")?.value || "",
+      capture: meta || {capturedAt:new Date().toISOString()},
+      routes: []
+    };
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, "readwrite");
+      tx.objectStore(STORE).put(item);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error || new Error("Video save aborted"));
+    });
+    db.close();
+    return id;
+  }
+
+  async function startQuickVideo() {
+    if (state.videoRecorder?.state === "recording") return;
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      alert("Camera recording is unavailable in this browser."); return;
+    }
+    try {
+      await resumeAudioForGesture();
+      /* Enable the one existing creative mic route first. */
+      if (!state.micStream) await enableMicrophone();
+      const camera = await openCameraVideoOnly();
+      const videoTrack = camera.getVideoTracks()[0];
+      const mixedAudioTracks = state.recordingDestination.stream.getAudioTracks();
+      if (!videoTrack || !mixedAudioTracks.length) throw new Error("Camera or TRI mix track unavailable");
+
+      const combined = new MediaStream([videoTrack, ...mixedAudioTracks]);
+      const mimeType = getVideoRecorderMimeType();
+      state.videoChunks = [];
+      state.captureMeta = {
+        capturedAt: new Date().toISOString(),
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
+        timezoneOffsetMinutes: new Date().getTimezoneOffset(),
+        location: null,
+        source: "tri-field-video-v4.3.1"
+      };
+      requestCaptureLocation(state.captureMeta);
+      const recorder = mimeType ? new MediaRecorder(combined, {mimeType}) : new MediaRecorder(combined);
+      state.videoRecorder = recorder;
+      recorder.ondataavailable = event => { if (event.data?.size) state.videoChunks.push(event.data); };
+      recorder.onerror = event => fieldEvent("video-error", event.error?.message || "MediaRecorder error");
+      recorder.onstop = async () => {
+        const actualType = recorder.mimeType || mimeType || "video/webm";
+        const blob = new Blob(state.videoChunks, {type: actualType});
+        state.currentVideoBlob = blob;
+        if (state.currentVideoUrl) URL.revokeObjectURL(state.currentVideoUrl);
+        state.currentVideoUrl = URL.createObjectURL(blob);
+        const replay = $("videoReplay");
+        replay.src = state.currentVideoUrl; replay.hidden = false;
+        try {
+          state.currentVideoRecordingId = await saveVideoRecording(blob, state.captureMeta);
+          state.currentBlob = blob;
+          state.currentRecordingId = state.currentVideoRecordingId;
+          $("videoAddNext").disabled = false;
+          $("videoState").textContent = "Saved ✓ • ready to replay/add as layer";
+          fieldEvent("video-saved", state.currentVideoRecordingId);
+          renderRecordings(); saveActiveSession(true);
+        } catch (error) {
+          $("videoState").textContent = "Video ready • Library save failed";
+          fieldEvent("video-save-failed", error.message);
+        } finally {
+          stopCameraStream();
+          $("quickVideo").disabled = false;
+          $("stopVideo").disabled = true;
+        }
+      };
+      recorder.start(1000);
+      state.videoStartedAt = Date.now();
+      $("quickVideo").disabled = true;
+      $("stopVideo").disabled = false;
+      $("videoReplay").hidden = true;
+      $("videoState").innerHTML = '<span class="video-live-dot"></span>Recording video + TRI mix + mic';
+      $("videoMeta").textContent = `Started ${new Date(state.captureMeta.capturedAt).toLocaleString()} • ${state.captureMeta.timezone || "local time"}`;
+      fieldEvent("video-record", `Started ${state.cameraFacingMode}; ${mixedAudioTracks.length} TRI mix audio track`);
+    } catch (error) {
+      stopCameraStream();
+      $("quickVideo").disabled = false;
+      $("stopVideo").disabled = true;
+      $("videoState").textContent = "Video start failed";
+      fieldEvent("video-start-failed", error.message);
+      alert(`TRI video could not start: ${error.message}`);
+    }
+  }
+
+  function stopQuickVideo() {
+    if (state.videoRecorder?.state === "recording") {
+      state.videoRecorder.stop();
+      $("videoState").textContent = "Finishing video…";
+      fieldEvent("video-record", "Stop requested");
+    }
+  }
+
+  async function flipVideoCamera() {
+    if (state.videoRecorder?.state === "recording") {
+      fieldEvent("video-camera", "Stop recording before flipping camera"); return;
+    }
+    state.cameraFacingMode = state.cameraFacingMode === "environment" ? "user" : "environment";
+    $("videoState").textContent = state.cameraFacingMode === "environment" ? "Rear camera selected" : "Front camera selected";
+  }
+
+  function addCurrentVideoToNextLayer() {
+    if (!state.currentVideoBlob) return;
+    const layerName = nextFreeLayerName();
+    if (!layerName) { fieldEvent("video-quick-add", "All layers full; use Library/replace controls"); return; }
+    loadLayerFromBlob(layerName, state.currentVideoBlob, state.currentVideoRecordingId, "Latest video");
+    fieldEvent("video-quick-add", `Video audio added to ${layerName}`);
+  }
+
+  $("quickVideo").addEventListener("click", startQuickVideo);
+  $("stopVideo").addEventListener("click", stopQuickVideo);
+  $("flipCamera").addEventListener("click", flipVideoCamera);
+  $("videoAddNext").addEventListener("click", addCurrentVideoToNextLayer);
+
+  /* -------------------------------------------------------
      INDEXEDDB — LIBRARY SPINE V1
      ------------------------------------------------------- */
 
@@ -3559,7 +3788,7 @@ async function updateRecordingItem(recording) {
   }
 
   /* V4.2 field reliability: one engine, one Library, lightweight session metadata. */
-  const FIELD_BUILD = "4.2.1";
+  const FIELD_BUILD = "4.3.1";
   const SESSION_KEY = "tri-active-session-v1";
   const FIELD_LOG_KEY = "tri-field-log-v1";
   const fieldQueue = [];
