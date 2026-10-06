@@ -1,5 +1,5 @@
-/* TRI V4.3.1 Seamless Field Video shell cache. Never opens, migrates, or deletes IndexedDB. */
-const SHELL_CACHE = "tri-shell-v4.3.1";
+/* TRI V4.4.8 Continuity Field V0 shell cache. Never opens, migrates, or deletes IndexedDB. */
+const SHELL_CACHE = "tri-shell-v4.4.8";
 const SHELL = ["./", "./index.html", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", event => {

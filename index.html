@@ -6,12 +6,13 @@
         content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
   <meta name="theme-color" content="#0b1020">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
   <link rel="manifest" href="manifest.json">
 
-  <title>TRI V4.2.1 — Mobile Field Fix</title>
+  <title>TRI V4.4.7 — PP Video V0 + MAPP</title>
 
   <style>
     :root {
@@ -440,6 +441,61 @@ css
     .video-capture-meta{font-size:11px;opacity:.8;margin-top:6px;}
     .video-live-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#ef4444;margin-right:5px;}
     body.field-mode .video-capture-panel{display:block;}
+/* TRI video workspace; player DOM remains mounted when floated. */
+.video-workspace{margin:14px 0;padding:16px;border:1px solid #334155;border-radius:16px;background:#101a2b}
+.video-workspace h2{font-size:18px;margin:0 0 6px}
+.video-workspace p{font-size:13px;color:#b8c7db;line-height:1.5}
+.video-intake{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.video-intake input[type=url]{flex:1;min-width:180px}
+.video-intake label{display:flex;gap:6px;align-items:center}
+.video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px;margin-top:12px}
+.video-card{min-width:0;border:1px solid #46607e;border-radius:12px;background:#111d30;overflow:hidden}
+.video-card.floating{position:fixed;width:min(360px,calc(100vw - 16px));max-height:calc(100dvh - 16px);overflow:auto;box-shadow:0 12px 48px #0009;z-index:1000}
+.video-card-header{display:flex;gap:6px;align-items:center;padding:8px;background:#1d304a}
+.video-drag{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;touch-action:none;cursor:grab;font-weight:600}
+.video-card-header button{font-size:12px;padding:8px}
+.video-card-body{padding:8px}
+.video-screen{background:#000;min-width:200px}
+.video-screen video{width:100%;max-height:260px;display:block;object-fit:contain;background:#000}
+.video-screen iframe{width:100%;height:220px;display:block;border:0;min-width:200px;min-height:200px}
+.video-card.visual-off .video-screen{display:none}
+.video-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.video-tools button{font-size:12px;min-height:36px}
+.video-tools label{display:flex;align-items:center;gap:4px;font-size:12px}
+.video-tools input[type=range]{width:92px}
+.video-tools input[type=checkbox]{width:16px;height:16px;padding:0;flex:none}
+.video-intake label{flex-wrap:wrap;min-width:0}
+.video-intake input[type=file]{max-width:100%;width:auto;font-size:12px}
+.video-info{font-size:12px;line-height:1.45;color:#c3d5ea;margin:8px 0 0;overflow-wrap:anywhere}
+.video-empty{font-size:13px;color:#a9bed9}
+.video-card:focus-within{border-color:#60a5fa}
+.video-grid[data-cols="1"]{grid-template-columns:minmax(0,1fr)}
+.video-grid[data-cols="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+.video-grid[data-cols="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+.video-grid[data-cols="4"]{grid-template-columns:repeat(4,minmax(0,1fr))}
+.video-card.focused{grid-column:1/-1;border-color:#93c5fd;box-shadow:0 0 0 2px #60a5fa55}
+.video-card.focused .video-screen video{max-height:62vh}
+.video-card.focused .video-screen iframe{height:min(62vh,620px)}
+.video-card.floating{resize:both;min-width:260px;min-height:220px}
+.video-card.floating .video-screen video{max-height:none}
+.video-card.floating .video-screen iframe{height:clamp(200px,42vh,520px)}
+@media(max-width:900px){.video-grid[data-cols="3"],.video-grid[data-cols="4"]{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.video-grid[data-cols="2"],.video-grid[data-cols="3"],.video-grid[data-cols="4"]{grid-template-columns:minmax(0,1fr)}.video-card.floating{resize:none;min-width:0}}
+@media(max-width:480px){.video-workspace{padding:12px}.video-intake>*{max-width:100%}.video-card.floating{width:calc(100vw - 16px)}.video-card-header{gap:4px}.video-card-header button{padding:8px 6px}.video-screen iframe{height:200px}}
+.video-card.floating.multi-float{width:min(31vw,420px);height:auto;max-height:46vh;min-width:220px;min-height:180px}
+.video-card.floating.multi-float .video-card-body{padding:6px}
+.video-card.floating.multi-float .video-screen iframe{height:clamp(150px,25vh,320px)}
+.video-card.floating.multi-float .video-screen video{max-height:30vh}
+
+/* V4.4.6 Document PiP board: copied into the always-on-top window too. */
+.pip-board-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;padding:8px;background:#0b1020;min-height:100vh;align-content:start}
+.pip-board-grid .video-card{min-width:0;max-width:none}
+.pip-board-grid .video-card.floating{position:relative!important;left:auto!important;top:auto!important;width:auto!important;height:auto!important;max-height:none!important;resize:both;overflow:auto}
+.pip-board-grid .video-screen video{max-height:42vh}
+.pip-board-grid .video-screen iframe{height:clamp(180px,32vh,420px)}
+.pip-board-grid .video-tools input[type=range]{width:120px}
+@media(max-width:700px){.video-card.floating.multi-float{width:46vw;max-height:42vh;min-width:160px}.video-card.floating.multi-float .video-screen iframe{height:24vh;min-width:0;min-height:120px}.video-card.floating.multi-float .video-tools{max-height:100px;overflow:auto}}
+
   </style>
 </head>
 
@@ -450,7 +506,8 @@ css
   <header class="header">
     <div class="title">TRI</div>
     <div class="subtitle">
-      Focus + Recording Companion
+      Transformative Resonance Interface · Public Preview<br>
+      <span class="small">Capture · Layer · Perform · Transform</span>
     </div>
   </header>
 
@@ -467,14 +524,21 @@ css
   <section class="field-dock" aria-label="Field controls">
     <div class="field-row"><button id="fieldToggle">Field Mode</button><button id="restoreSession" hidden>Restore Last Session</button><button id="applyPwaUpdate" hidden>Update TRI</button><button id="fieldTeleport">↗ Teleport to Mix</button></div>
     <div id="fieldLayers" class="small" aria-live="polite">A: Empty • B: Empty • C: Empty • D: Empty</div>
+    <div class="video-capture-panel" id="mappJourneyPanel">
+      <div class="field-row"><strong>🗺 MAPP Journey</strong><span id="mappJourneyStatus" class="small">No active journey</span></div>
+      <div class="field-row"><input id="mappJourneyName" type="text" placeholder="Journey name (optional)" aria-label="Journey name"><button id="mappStartJourney" class="primary">＋ Start Journey</button><button id="mappEndJourney" disabled>■ End Journey</button></div>
+      <label class="small"><input id="mappAttachLocation" type="checkbox"> 📍 Attach location to new PointPins (asks permission only when saving)</label>
+      <div id="mappJourneyMeta" class="video-capture-meta">Captures made during an active journey can carry Journey + PointPin metadata into the existing Library.</div>
+    </div>
     <div id="fieldMiniGrid" class="field-mini-grid" aria-label="Four layer controls"></div>
-    <div class="field-row"><button id="fieldPlay" class="primary">▶ Play All</button><button id="fieldLoopAll">↻ Loop All</button><button id="fieldStop">■ Stop All</button><button id="fieldRecord">● Record</button><button id="fieldStopRecord">■ Stop Record</button><button id="downloadUnsaved" hidden>Download Unsaved Recording</button></div>
+    <div class="field-row"><button id="fieldPlay" class="primary">▶ Play All</button><button id="fieldQuickPick" class="primary">＋ Quick Add</button><button id="fieldLoopAll">↻ Loop All</button><button id="fieldStop">■ Stop All</button><button id="fieldRecord" class="primary">🎙 Quick Sound</button><button id="fieldVoiceNote">📝 Voice Note</button><button id="fieldQuickAddLatest" disabled>＋ Sound → Next Layer</button><button id="fieldLibrary">Library</button><button id="fieldStopRecord" hidden>■ Stop Record</button><button id="downloadUnsaved" hidden>Download Unsaved Recording</button></div><div class="field-row"><button id="fieldLastSetup" class="good">↺ Last Setup</button><button id="fieldSavePreset">★ Save Preset</button><button id="fieldPreset1">P1</button><button id="fieldPreset2">P2</button><button id="fieldPreset3">P3</button></div>
     <div class="video-capture-panel" id="fieldVideoPanel">
       <div class="field-row"><strong>Field Video</strong><span id="videoState" class="small">Camera idle</span></div>
       <video id="cameraPreview" playsinline muted hidden></video>
       <video id="videoReplay" playsinline controls hidden></video>
       <div class="video-capture-actions">
         <button id="quickVideo" class="primary">● Quick Video</button>
+        <button id="cameraSetup">Camera Setup</button>
         <button id="stopVideo" disabled>■ Stop Video</button>
         <button id="flipCamera">↺ Flip Camera</button>
         <button id="videoAddNext" disabled>＋ Video → Next Layer</button>
@@ -482,12 +546,47 @@ css
       <label class="small"><input id="attachLocation" type="checkbox"> Attach location metadata (asks permission)</label>
       <div id="videoMeta" class="video-capture-meta">Timestamp will be attached automatically. Location is optional.</div>
     </div>
-    <div class="field-row"><input id="fieldFiles" type="file" accept="audio/*,video/mp4,video/webm" multiple><button id="fieldNext">＋ Quick Add</button></div>
+    <div class="field-row"><input id="fieldFiles" type="file" accept="audio/*,video/mp4,video/webm" multiple><button id="fieldNext">＋ Add / Queue</button></div>
     <details id="fieldMore"><summary>More: replace layer / diagnostics</summary><div class="field-row"><button id="fieldAssignA">Replace A</button><button id="fieldAssignB">Replace B</button><button id="fieldAssignC">Replace C</button><button id="fieldAssignD">Replace D</button></div></details>
     <div id="loadQueueStatus" class="small" role="status">Queue idle</div>
     <details><summary>Field diagnostics</summary><div class="small">Events survive a restart. Media files are not stored in this log.</div><pre id="fieldLog"></pre></details>
   </section>
 
+  <section class="video-workspace" id="videoWorkspace" aria-label="Video miniplayers">
+    <h2>TRI Multiscreen <span class="small">v4.4.7 PP Video V0</span></h2>
+    <p>Put local video, TRI video layers, shared tabs and YouTube players on one controllable screen. PiP Board puts multiple players into one browser always-on-top Picture-in-Picture workspace, while Multi-Float remains available inside TRI.</p>
+    <form id="videoUrlForm" class="video-intake">
+      <input id="videoUrlInput" type="text" inputmode="url" required placeholder="Paste YouTube link or 11-character video ID" aria-label="YouTube video URL or ID">
+      <button id="miniPasteYoutube" type="button">Paste</button>
+      <button type="submit" class="primary">＋ YouTube</button>
+    </form>
+    <div class="video-intake">
+      <label>＋ Local videos <input id="miniVideoFiles" type="file" accept="video/*" multiple></label>
+      <button id="miniShareTab" type="button">＋ Share tab audio / video</button>
+      <label>Layout <select id="miniGridLayout" aria-label="Multiscreen grid columns"><option value="auto">Auto</option><option value="1">1 column</option><option value="2" selected>2 columns</option><option value="3">3 columns</option><option value="4">4 columns</option></select></label>
+      <label><input id="miniAutoFloat" type="checkbox" checked> Auto-float new</label>
+      <button id="miniPiPBoard" type="button" class="primary">▣ PiP Board — all</button>
+      <label><input id="miniAutoPiP" type="checkbox" checked> Auto-add to PiP Board</label>
+      <button id="miniFloatAll" type="button">Float all in TRI</button>
+      <button id="miniFiveScreen" type="button">5-screen layout</button>
+      <button id="miniDockAll" type="button">Dock all</button>
+      <button id="miniShowLayers" type="button">Show A/B/C/D videos</button>
+      <button id="miniPauseAll" type="button">Pause videos</button>
+    </div>
+    <div class="video-intake pp-video-intake">
+      <strong>📍 PP Video V0</strong>
+      <span class="small">Load a source above, then press <b>📍 PIN NOW</b> on its player. A PointPin remembers the exact video moment without changing the Library DB.</span>
+      <input id="ppQuickTag" type="text" placeholder="Optional tag / thought for next pin" aria-label="Optional PointPin tag or thought">
+    </div>
+    <div id="ppVideoShelf" class="video-intake" aria-label="Saved video PointPins"></div>
+    <details><summary>How the mix works</summary><p>Local videos and shared tab audio can enter TRI's speakers and recording mix. The Mix checkbox controls that route. YouTube embeds play independently and cannot be wired directly into TRI's recorder. On a supported desktop browser, open the video in its own tab, choose Share tab audio / video, select that tab and enable tab audio. Turn off the matching embed to avoid hearing it twice. Shared previews do not control the source tab.</p><p>Play All starts the loaded TRI layers and ready video players. Mobile browsers may require tapping each player once. YouTube needs internet and embedding permission. Classic browser PiP only allows one video at a time. TRI PiP Board uses Document Picture-in-Picture where supported: one always-on-top window containing several independently controlled video layers. This is the plural PiP mode. Multi-Float remains the in-TRI fallback. Classic single-video PiP is still offered for local videos. Hiding a local visual keeps its audio route; background and screen-off playback remain browser-dependent.</p></details>
+    <div id="miniVideoStatus" class="small" role="status" aria-live="polite">Ready to add videos.</div>
+    <p class="small">Extra video players are session-only. Save your recordings before updating or closing TRI.</p>
+    <div class="video-grid" id="miniVideoGrid"></div>
+    <p class="video-empty" id="miniVideoEmpty">No video players yet. Video files loaded into A/B/C/D also appear here.</p>
+  </section>
+
+  <div id="triHiddenMedia" hidden></div>
   <!-- BASIC SESSION -->
 
   <section class="panel">
@@ -1074,6 +1173,10 @@ css
       <button id="auditionLibrary">▶ Audition Library</button>
       <button id="stopAudition">■ Stop Audition</button>
       <span id="auditionStatus" class="small">Ready</span>
+      <button id="libraryAll" class="primary">All</button>
+      <button id="libraryVoiceNotes">📝 Voice Notes</button>
+      <button id="librarySound">🎙 Sound</button>
+      <button id="libraryVideo">🎥 Video</button>
     </div>
 
     <div
@@ -1086,7 +1189,7 @@ css
   </section>
 
   <footer class="footer">
-    TRI V4.2 — field reliability checkpoint
+    TRI V4.4.4 — Multiscreen V0 + MAPP
   </footer>
 
 </div>
@@ -1134,6 +1237,10 @@ css
     recordingStartedAt: null,
 
     recordingTimer: null,
+
+    captureKind: "sound",
+
+    mappJourney: null,
 
     currentBlob: null,
 
@@ -1375,7 +1482,9 @@ css
     }
 
     const audio =
-      document.createElement("audio");
+      document.createElement("video");
+    audio.playsInline = true;
+    $("triHiddenMedia").append(audio);
 
     audio.preload = "auto";
     audio.loop = Boolean($("loop" + name)?.checked);
@@ -1492,6 +1601,8 @@ css
       layer.segmentLoop = false; layer.segmentPlayback = false;
       layer.audio.loop = Boolean($("loop" + name).checked);
       layer.loaded = true;
+      layer.isVideo = Boolean(layer.audio.videoWidth || layer.audio.videoHeight || mime.startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(file.name || label));
+      syncLayerVideoMini(name);
       layer.gain.gain.value = Number($("volume" + name).value);
       status.textContent = `Ready: ${layer.externalName}`;
       setDiagnostic("diag" + name, "Ready", "ok");
@@ -1574,6 +1685,7 @@ css
 
 
   function playAll() {
+    playExtraVideoMinis();
 
     if (navigator.mediaSession) navigator.mediaSession.playbackState = "playing";
     resumeAudioForGesture().catch(error => fieldEvent("audio-context", error.message));
@@ -1605,6 +1717,7 @@ css
 
 
   function stopAll() {
+    pauseAllVideoMinis();
 
     if (navigator.mediaSession) navigator.mediaSession.playbackState = "paused";
     saveActiveSession(true);
@@ -2057,7 +2170,9 @@ css
   }
 
 
-  async function startRecording() {
+  async function startRecording(captureKind = "sound") {
+
+    state.captureKind = captureKind || "sound";
 
     try { await resumeAudioForGesture(); }
     catch (error) { fieldEvent("record-blocked", error.message); return; }
@@ -2249,6 +2364,7 @@ css
 
 
     updateRecordingTimer();
+    renderFieldStatus();
 
   }
 
@@ -2358,6 +2474,7 @@ css
 
     renderRecordings();
     saveActiveSession(true);
+    renderFieldStatus();
 
   }
 
@@ -2462,6 +2579,11 @@ css
   }
 
   async function openCameraVideoOnly() {
+    // Reuse an already-authorized preview stream. This makes the second
+    // Quick Video tap immediate and avoids needlessly re-prompting iOS.
+    if (state.cameraStream?.active && state.cameraStream.getVideoTracks().some(t => t.readyState === "live")) {
+      return state.cameraStream;
+    }
     stopCameraStream();
     state.cameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
@@ -2517,6 +2639,7 @@ css
       style: $("style")?.value || "",
       element: $("element")?.value || "",
       capture: meta || {capturedAt:new Date().toISOString()},
+      mapp: await buildMappPointPin(meta?.capturedAt || new Date().toISOString()),
       routes: []
     };
     await new Promise((resolve, reject) => {
@@ -2530,16 +2653,51 @@ css
     return id;
   }
 
+  function videoPermissionMessage(error) {
+    const name = error?.name || "";
+    if (name === "NotAllowedError" || name === "SecurityError") {
+      return "Camera access was blocked. Tap Camera Setup and allow camera access when iOS asks. If you previously chose Don't Allow, enable Camera for this site/PWA in iPhone Settings, then reopen TRI.";
+    }
+    if (name === "NotFoundError" || name === "DevicesNotFoundError") return "No usable camera was found on this device.";
+    if (name === "NotReadableError" || name === "TrackStartError") return "The camera is busy or unavailable. Close other camera apps and try again.";
+    return error?.message || "Camera could not start.";
+  }
+
+  async function setupCamera() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      $("videoState").textContent = "Camera unavailable";
+      alert("Camera access is unavailable in this browser/context.");
+      return false;
+    }
+    try {
+      $("videoState").textContent = "Requesting camera…";
+      await openCameraVideoOnly();
+      $("videoState").textContent = "Camera ready ✓";
+      $("videoMeta").textContent = "Camera ready. Tap Quick Video to record with the TRI mix.";
+      fieldEvent("video-camera", "Camera permission/preview ready");
+      return true;
+    } catch (error) {
+      stopCameraStream();
+      $("videoState").textContent = "Camera permission needed";
+      const message = videoPermissionMessage(error);
+      fieldEvent("video-camera-failed", `${error.name || "Error"}: ${error.message || message}`);
+      alert(message);
+      return false;
+    }
+  }
+
   async function startQuickVideo() {
     if (state.videoRecorder?.state === "recording") return;
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
       alert("Camera recording is unavailable in this browser."); return;
     }
     try {
-      await resumeAudioForGesture();
-      /* Enable the one existing creative mic route first. */
-      if (!state.micStream) await enableMicrophone();
+      // Camera comes FIRST from the explicit Quick Video tap. On iOS/PWA this
+      // gives the platform the cleanest possible user-gesture permission path.
       const camera = await openCameraVideoOnly();
+      await resumeAudioForGesture();
+      // Then enable TRI's single creative mic route if it is not already live.
+      if (!state.micStream) await enableMicrophone();
       const videoTrack = camera.getVideoTracks()[0];
       const mixedAudioTracks = state.recordingDestination.stream.getAudioTracks();
       if (!videoTrack || !mixedAudioTracks.length) throw new Error("Camera or TRI mix track unavailable");
@@ -2552,7 +2710,7 @@ css
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || null,
         timezoneOffsetMinutes: new Date().getTimezoneOffset(),
         location: null,
-        source: "tri-field-video-v4.3.1"
+        source: "tri-field-video-v4.3.2-public-preview"
       };
       requestCaptureLocation(state.captureMeta);
       const recorder = mimeType ? new MediaRecorder(combined, {mimeType}) : new MediaRecorder(combined);
@@ -2598,7 +2756,8 @@ css
       $("stopVideo").disabled = true;
       $("videoState").textContent = "Video start failed";
       fieldEvent("video-start-failed", error.message);
-      alert(`TRI video could not start: ${error.message}`);
+      const message = videoPermissionMessage(error);
+      alert(`TRI video could not start: ${message}`);
     }
   }
 
@@ -2627,6 +2786,7 @@ css
   }
 
   $("quickVideo").addEventListener("click", startQuickVideo);
+  $("cameraSetup").addEventListener("click", setupCamera);
   $("stopVideo").addEventListener("click", stopQuickVideo);
   $("flipCamera").addEventListener("click", flipVideoCamera);
   $("videoAddNext").addEventListener("click", addCurrentVideoToNextLayer);
@@ -2737,6 +2897,65 @@ css
   }
 
 
+  const MAPP_JOURNEY_KEY = "tri-mapp-active-journey-v0";
+
+  function loadMappJourney() {
+    try { return JSON.parse(localStorage.getItem(MAPP_JOURNEY_KEY) || "null"); }
+    catch (_) { return null; }
+  }
+
+  function persistMappJourney(journey) {
+    state.mappJourney = journey || null;
+    try {
+      if (journey) localStorage.setItem(MAPP_JOURNEY_KEY, JSON.stringify(journey));
+      else localStorage.removeItem(MAPP_JOURNEY_KEY);
+    } catch (_) {}
+    renderMappJourney();
+  }
+
+  function renderMappJourney() {
+    const status = $("mappJourneyStatus");
+    const meta = $("mappJourneyMeta");
+    const start = $("mappStartJourney");
+    const end = $("mappEndJourney");
+    if (!status) return;
+    const j = state.mappJourney;
+    status.textContent = j ? `Active: ${j.name}` : "No active journey";
+    if (start) start.disabled = !!j;
+    if (end) end.disabled = !j;
+    if (meta) meta.textContent = j
+      ? `Started ${new Date(j.startedAt).toLocaleString()} • ${j.id} • new captures receive PointPins.`
+      : "Captures made during an active journey can carry Journey + PointPin metadata into the existing Library.";
+  }
+
+  function requestMappLocation() {
+    return new Promise(resolve => {
+      if (!$("mappAttachLocation")?.checked || !navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        pos => resolve({latitude:pos.coords.latitude, longitude:pos.coords.longitude, accuracyMeters:pos.coords.accuracy}),
+        error => { fieldEvent("mapp-location", `Location unavailable: ${error.message}`); resolve(null); },
+        {enableHighAccuracy:true, timeout:7000, maximumAge:30000}
+      );
+    });
+  }
+
+  async function buildMappPointPin(capturedAt) {
+    const journey = state.mappJourney;
+    if (!journey) return null;
+    const location = await requestMappLocation();
+    return {
+      version: 0,
+      pointPinId: `pointpin-${makeId()}`,
+      journeyId: journey.id,
+      journeyName: journey.name,
+      journeyStartedAt: journey.startedAt,
+      capturedAt: capturedAt || new Date().toISOString(),
+      location,
+      visibility: "private",
+      source: "tri-mapp-v0"
+    };
+  }
+
   async function saveRecording(
     blob
   ) {
@@ -2745,15 +2964,9 @@ css
       await openDatabase();
 
 
-    const title =
-      $("recordingTitle")
-        .value
-        .trim() ||
-      (
-        "TRI Session " +
-        new Date()
-          .toLocaleString()
-      );
+    const manualTitle = $("recordingTitle").value.trim();
+    const autoPrefix = state.captureKind === "voice-note" ? "Voice Note" : "TRI Session";
+    const title = manualTitle || (autoPrefix + " " + new Date().toLocaleString());
 
 
     const item = {
@@ -2766,6 +2979,10 @@ css
 
       type:
         "tri-session",
+
+      mediaKind: "audio",
+      captureKind: state.captureKind || "sound",
+      source: state.captureKind === "voice-note" ? "mapp-voice-note" : "quick-sound",
 
       duration:
         state.recordingStartedAt
@@ -2817,6 +3034,8 @@ css
       element:
         $("element")
           .value,
+
+      mapp: await buildMappPointPin(new Date().toISOString()),
 
       routes: []
 
@@ -3060,6 +3279,7 @@ async function updateRecordingItem(recording) {
 
 
   let recordingRenderLimit = 20;
+  let libraryFilter = "all";
   const libraryObjectUrls = new Set();
   async function renderRecordings() {
 
@@ -3067,12 +3287,19 @@ async function updateRecordingItem(recording) {
     if (!list) return;
 
     try {
-      const recordings = await getAllRecordings();
+      const allRecordings = await getAllRecordings();
+      const recordings = allRecordings.filter(recording => {
+        if (libraryFilter === "all") return true;
+        if (libraryFilter === "voice-note") return recording.captureKind === "voice-note" || recording.source === "mapp-voice-note";
+        if (libraryFilter === "video") return recording.mediaKind === "video" || recording.type === "tri-video" || !!recording.videoBlob;
+        if (libraryFilter === "sound") return !(recording.mediaKind === "video" || recording.type === "tri-video" || !!recording.videoBlob) && recording.captureKind !== "voice-note";
+        return true;
+      });
 
       for (const url of libraryObjectUrls) URL.revokeObjectURL(url);
       libraryObjectUrls.clear();
       if (!recordings.length) {
-        list.innerHTML = `<div class="small">No recordings saved yet.</div>`;
+        list.innerHTML = `<div class="small">${allRecordings.length ? "No items in this Library view." : "No recordings saved yet."}</div>`;
         return;
       }
 
@@ -3114,7 +3341,19 @@ async function updateRecordingItem(recording) {
 
         const meta = document.createElement("div");
         meta.className = "small";
-        meta.textContent = `${date} • ${layerText}${recording.microphone ? " + Mic" : ""}`;
+        const kindLabel = recording.captureKind === "voice-note" ? "Voice Note" : ((recording.mediaKind === "video" || recording.type === "tri-video" || recording.videoBlob) ? "Video" : "Sound");
+        meta.textContent = `${date} • ${kindLabel} • ${layerText}${recording.microphone ? " + Mic" : ""}`;
+
+        const mappMeta = document.createElement("div");
+        mappMeta.className = "small";
+        mappMeta.style.marginTop = "5px";
+        if (recording.mapp?.pointPinId) {
+          const loc = recording.mapp.location;
+          const where = loc ? ` • 📍 ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)} ±${Math.round(loc.accuracyMeters || 0)}m` : " • location not attached";
+          mappMeta.textContent = `🗺 ${recording.mapp.journeyName} • PointPin ${recording.mapp.pointPinId}${where} • ${recording.mapp.visibility || "private"}`;
+        } else {
+          mappMeta.textContent = "";
+        }
 
         const flavor = document.createElement("div");
         flavor.className = "small";
@@ -3284,9 +3523,14 @@ async function updateRecordingItem(recording) {
 
         const buttons = document.createElement("div");
         buttons.className = "row";
+        if (recording.mediaKind === "video" || recording.videoBlob || (recording.audioBlob?.type || "").startsWith("video/")) {
+          const mini = document.createElement("button"); mini.textContent = "Open Video Miniplayer";
+          mini.addEventListener("click", () => { audio.pause(); addLocalVideoMini(recording.videoBlob || recording.audioBlob, recording.id, recording.title); $("videoWorkspace").scrollIntoView({behavior:"smooth",block:"start"}); });
+          buttons.append(mini);
+        }
         buttons.append(download, share, layerControls, remove);
 
-        card.append(hero, titleRow, meta, flavor, audio, precise, seek, segmentRow, clipList, routeRow, status, buttons);
+        card.append(hero, titleRow, meta, mappMeta, flavor, audio, precise, seek, segmentRow, clipList, routeRow, status, buttons);
         list.appendChild(card);
       });
       if (recordings.length > recordingRenderLimit) {
@@ -3763,7 +4007,7 @@ async function updateRecordingItem(recording) {
       });
       let activationRequested = false;
       button.addEventListener("click", () => {
-        if (state.recorder?.state === "recording" || queueRunning ||
+        if (state.recorder?.state === "recording" || state.videoRecorder?.state === "recording" || [...videoMinis.values()].some(item => !item.ready && item.kind === "local") || queueRunning ||
             Object.values(state.layers).some(layer => layer.loading)) {
           fieldEvent("pwa-update", "Finish recording/loading before updating"); return;
         }
@@ -3788,7 +4032,7 @@ async function updateRecordingItem(recording) {
   }
 
   /* V4.2 field reliability: one engine, one Library, lightweight session metadata. */
-  const FIELD_BUILD = "4.3.1";
+  const FIELD_BUILD = "4.4.8";
   const SESSION_KEY = "tri-active-session-v1";
   const FIELD_LOG_KEY = "tri-field-log-v1";
   const fieldQueue = [];
@@ -3960,7 +4204,9 @@ async function updateRecordingItem(recording) {
     const loaded = ["A","B","C","D"].filter(n => state.layers[n].loaded);
     const allLooped = loaded.length > 0 && loaded.every(n => $("loop"+n).checked);
     $("fieldLoopAll").textContent = allLooped ? "↻ Unloop All" : "↻ Loop All";
-    $("fieldRecord").textContent = state.mediaRecorder?.state === "recording" ? "● Recording" : "● Record";
+    $("fieldRecord").textContent = state.recorder?.state === "recording" ? "■ Stop Sound" : "🎙 Quick Sound";
+    const quickLatest = $("fieldQuickAddLatest");
+    if (quickLatest) quickLatest.disabled = !state.currentBlob;
   }
 
   function prepareMiniMixer() {
@@ -4005,6 +4251,38 @@ async function updateRecordingItem(recording) {
     renderQueue(); runQueue();
   }
 
+  async function persistQuickFile(file) {
+    // Quick Add sources are copied into the existing Library store so Last Setup and presets
+    // can rehydrate them after a PWA restart. No DB/schema migration is performed.
+    const item = {
+      id: makeId(),
+      createdAt: new Date().toISOString(),
+      type: "tri-quick-source",
+      mediaKind: (file.type || "").startsWith("video/") ? "video" : "audio",
+      captureKind: "quick-add",
+      source: "field-quick-add",
+      duration: 0,
+      microphone: false,
+      layers: [],
+      audioBlob: file,
+      mimeType: file.type || "application/octet-stream",
+      title: file.name || `Quick Source ${new Date().toLocaleTimeString()}`,
+      notes: "Auto-saved by Quick Add for continuity",
+      prompt: "",
+      mode: "field"
+    };
+    const db = await openDatabase();
+    try {
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE, "readwrite");
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+        tx.objectStore(STORE).put(item);
+      });
+    } finally { db.close(); }
+    return item;
+  }
+
   async function runQueue() {
     if (queueRunning) return;
     queueRunning = true; renderQueue();
@@ -4014,14 +4292,77 @@ async function updateRecordingItem(recording) {
         if (!name) { fieldEvent("queue-paused", "All layers occupied; choose A/B/C/D to replace a layer"); break; }
         const file = fieldQueue.shift();
         renderQueue();
-        await loadLayer(name, file, null, file.name);
+        try {
+          const saved = await persistQuickFile(file);
+          const ok = await loadLayer(name, saved.audioBlob, saved.id, saved.title);
+          if (!ok) throw new Error(`Layer ${name} could not load`);
+          fieldEvent("quick-add", `${saved.title} → ${name} • saved for continuity`);
+          saveActiveSession(true);
+          renderRecordings();
+        } catch (error) {
+          fieldEvent("quick-add-error", `${file.name}: ${error.message}`);
+        }
         await new Promise(resolve => setTimeout(resolve, 0));
       }
     } finally { queueRunning = false; renderQueue(); }
   }
 
+  async function loadPresetObject(p) {
+    if (!p) return false;
+    for (const spec of p.layers || []) {
+      const rec = await getRecordingById(spec.recordingId);
+      if (!rec?.audioBlob) continue;
+      if (!await loadLayerFromBlob(spec.name, rec.audioBlob, rec.id, rec.title)) continue;
+      $("volume"+spec.name).value=String(spec.volume ?? 0.8);
+      setupLayer(spec.name);
+      state.layers[spec.name].gain.gain.value=Number(spec.volume ?? 0.8);
+      $("loop"+spec.name).checked=Boolean(spec.loop);
+      state.layers[spec.name].segmentStart=spec.segmentStart||0;
+      state.layers[spec.name].segmentEnd=spec.segmentEnd ?? null;
+      state.layers[spec.name].segmentLoop=Boolean(spec.segmentLoop);
+      state.layers[spec.name].segmentPlayback=Boolean(spec.segmentPlayback);
+      state.layers[spec.name].sourceClipId=spec.clipId||null;
+      state.layers[spec.name].audio.loop=Boolean(spec.loop) && !spec.segmentLoop;
+      syncLayerTransport(spec.name);
+    }
+    activePresetId=p.id; saveActiveSession(true); renderFieldStatus(); return true;
+  }
+
+  function saveQuickPreset() {
+    const backed = Object.entries(state.layers).filter(([,l]) => l.loaded && l.sourceRecordingId);
+    if (!backed.length) { fieldEvent("preset", "Quick Add or load a Library source first"); return; }
+    const title = prompt("Preset name", `Preset ${readPresets().length + 1}`); if (!title) return;
+    const preset={id:makeId(),title:title.trim(),createdAt:new Date().toISOString(),layers:backed.map(([name,l])=>({name,recordingId:l.sourceRecordingId,volume:Number($("volume"+name).value),loop:Boolean($("loop"+name).checked),segmentStart:l.segmentStart||0,segmentEnd:l.segmentEnd,segmentLoop:Boolean(l.segmentLoop),segmentPlayback:Boolean(l.segmentPlayback),clipId:l.sourceClipId||null}))};
+    const items=readPresets(); items.unshift(preset); writePresets(items); activePresetId=preset.id; renderPresets(); saveActiveSession(true); fieldEvent("preset-save", preset.title);
+  }
+
+  async function loadPresetSlot(index) {
+    const p = readPresets()[index];
+    if (!p) { fieldEvent("preset", `Preset ${index+1} is empty`); return; }
+    await loadPresetObject(p); fieldEvent("preset-load", p.title);
+  }
+
   function prepareFieldControls() {
     prepareMiniMixer();
+    state.mappJourney = loadMappJourney();
+    renderMappJourney();
+    $("mappStartJourney")?.addEventListener("click", () => {
+      const typed = $("mappJourneyName")?.value?.trim();
+      const now = new Date();
+      persistMappJourney({
+        id: `journey-${makeId()}`,
+        name: typed || `Journey ${now.toLocaleString()}`,
+        startedAt: now.toISOString(),
+        visibility: "private",
+        version: 0
+      });
+      fieldEvent("mapp-journey-start", state.mappJourney.name);
+    });
+    $("mappEndJourney")?.addEventListener("click", () => {
+      if (!state.mappJourney) return;
+      fieldEvent("mapp-journey-end", state.mappJourney.name);
+      persistMappJourney(null);
+    });
     $("fieldLoopAll").addEventListener("click", () => {
       const loaded = ["A","B","C","D"].filter(n => state.layers[n].loaded);
       if (!loaded.length) { fieldEvent("loop-all", "Load at least one layer first"); return; }
@@ -4041,8 +4382,33 @@ async function updateRecordingItem(recording) {
     });
     $("fieldPlay").addEventListener("click", playAll);
     $("fieldStop").addEventListener("click", stopAll);
-    $("fieldRecord").addEventListener("click", () => $("startRecording").click());
-    $("fieldStopRecord").addEventListener("click", () => $("stopRecording").click());
+    $("fieldRecord").addEventListener("click", () => {
+      if (state.recorder?.state === "recording") stopRecording();
+      else startRecording("sound");
+      setTimeout(renderFieldStatus, 0);
+    });
+    $("fieldVoiceNote")?.addEventListener("click", () => {
+      if (state.recorder?.state === "recording") stopRecording();
+      else startRecording("voice-note");
+      setTimeout(renderFieldStatus, 0);
+    });
+    $("fieldStopRecord").addEventListener("click", () => stopRecording());
+    $("fieldQuickAddLatest")?.addEventListener("click", () => quickAddCurrentRecording(nextFreeLayerName()));
+    $("fieldLibrary")?.addEventListener("click", () => {
+      $("recordingsList")?.scrollIntoView({behavior:"smooth", block:"start"});
+    });
+    const setLibraryFilter = (filter) => {
+      libraryFilter = filter;
+      recordingRenderLimit = 20;
+      ["libraryAll","libraryVoiceNotes","librarySound","libraryVideo"].forEach(id => $(id)?.classList.remove("primary"));
+      const active = filter === "all" ? "libraryAll" : filter === "voice-note" ? "libraryVoiceNotes" : filter === "sound" ? "librarySound" : "libraryVideo";
+      $(active)?.classList.add("primary");
+      renderRecordings();
+    };
+    $("libraryAll")?.addEventListener("click", () => setLibraryFilter("all"));
+    $("libraryVoiceNotes")?.addEventListener("click", () => setLibraryFilter("voice-note"));
+    $("librarySound")?.addEventListener("click", () => setLibraryFilter("sound"));
+    $("libraryVideo")?.addEventListener("click", () => setLibraryFilter("video"));
     $("downloadUnsaved").addEventListener("click", () => {
       if (!state.currentBlob) return;
       const url = URL.createObjectURL(state.currentBlob);
@@ -4053,6 +4419,12 @@ async function updateRecordingItem(recording) {
     });
     $("fieldTeleport").addEventListener("click", teleportToMix);
     $("restoreSession").addEventListener("click", restoreActiveSession);
+    $("fieldLastSetup")?.addEventListener("click", restoreActiveSession);
+    $("fieldQuickPick")?.addEventListener("click", () => $("fieldFiles").click());
+    $("fieldSavePreset")?.addEventListener("click", saveQuickPreset);
+    $("fieldPreset1")?.addEventListener("click", () => loadPresetSlot(0));
+    $("fieldPreset2")?.addEventListener("click", () => loadPresetSlot(1));
+    $("fieldPreset3")?.addEventListener("click", () => loadPresetSlot(2));
     $("fieldFiles").addEventListener("click", () => fieldEvent("picker-open", "Multiple audio selection requested"));
     $("fieldFiles").addEventListener("cancel", () => fieldEvent("picker", "Multiple selection cancelled"));
     $("fieldFiles").addEventListener("change", event => {
@@ -4128,6 +4500,10 @@ async function updateRecordingItem(recording) {
   }
 
 
+  // Ask supporting browsers to treat TRI as long-form playback. The OS may still suspend
+  // a PWA in the background; Media Session controls remain the portable recovery path.
+  try { if ("audioSession" in navigator) navigator.audioSession.type = "playback"; } catch (_) {}
+
   /* -------------------------------------------------------
      INITIALIZATION
      ------------------------------------------------------- */
@@ -4184,6 +4560,12 @@ async function updateRecordingItem(recording) {
 
     renderRecordings();
 
+    // Rehydrate the last Library-backed workspace automatically. Playback still waits for
+    // a user gesture to comply with mobile autoplay policy.
+    if (localStorage.getItem(SESSION_KEY)) {
+      await restoreActiveSession();
+    }
+
 
     /*
       Initial diagnostics.
@@ -4192,6 +4574,529 @@ async function updateRecordingItem(recording) {
     runDiagnostics();
 
   }
+
+
+  /* V4.4 miniplayers share TRI's AudioContext and recorder; no new DB. */
+  const videoMinis = new Map();
+  let videoMiniSerial = 0, videoMiniZ = 1000, youtubeApiPromise;
+  let triPipWindow = null, triPipGrid = null, triPipClosing = false;
+  const PP_VIDEO_KEY = "tri-pp-video-v0";
+  let ppVideoPins = [];
+  try { ppVideoPins = JSON.parse(localStorage.getItem(PP_VIDEO_KEY) || "[]"); if (!Array.isArray(ppVideoPins)) ppVideoPins=[]; } catch (_) { ppVideoPins=[]; }
+  const miniStatus = message => { $("miniVideoStatus").textContent = message; fieldEvent("video-layer", message); };
+  const miniClamp = (n, min, max) => Math.max(min, Math.min(n, Math.max(min, max)));
+
+  function parseYoutubeLink(value) {
+    let rawValue = String(value || "").trim();
+    if (/^[A-Za-z0-9_-]{11}$/.test(rawValue)) return {id:rawValue,start:0};
+    const embedded = rawValue.match(/https?:\/\/[^\s]+/i);
+    if (embedded) rawValue = embedded[0].replace(/[)>.,]+$/, "");
+    if (/^(www\.)?(youtube\.com|youtu\.be)\//i.test(rawValue)) rawValue = "https://" + rawValue;
+    let url;
+    try { url = new URL(rawValue); } catch (_) { throw new Error("Paste a YouTube Share link, normal video URL, or 11-character video ID."); }
+    if (!/^https?:$/.test(url.protocol)) throw new Error("Use a YouTube web link.");
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    let id;
+    if (host === "youtu.be") id = url.pathname.split("/")[1];
+    else if (["youtube.com", "m.youtube.com", "music.youtube.com", "youtube-nocookie.com"].includes(host)) {
+      id = url.pathname === "/watch" ? url.searchParams.get("v") : /^\/(embed|shorts|live)\//.test(url.pathname) ? url.pathname.split("/")[2] : null;
+    }
+    if (!/^[A-Za-z0-9_-]{11}$/.test(id || "")) throw new Error("That link does not contain a usable YouTube video ID.");
+    const raw = url.searchParams.get("t") || url.searchParams.get("start") || "0";
+    const start = /^\d+$/.test(raw) ? Number(raw) : [...raw.matchAll(/(\d+)(h|m|s)/g)].reduce((n,m) => n + Number(m[1]) * ({h:3600,m:60,s:1}[m[2]]), 0);
+    return {id, start:Math.min(start, 86400)};
+  }
+
+  function loadYoutubeApi() {
+    if (window.YT?.Player) return Promise.resolve();
+    if (youtubeApiPromise) return youtubeApiPromise;
+    youtubeApiPromise = new Promise((resolve, reject) => {
+      const previous = window.onYouTubeIframeAPIReady;
+      const script = document.createElement("script");
+      const timer = setTimeout(() => { script.remove(); youtubeApiPromise = null; reject(new Error("YouTube could not load. Check your connection, then try again.")); }, 20000);
+      window.onYouTubeIframeAPIReady = () => { clearTimeout(timer); try { previous?.(); } finally { resolve(); } };
+      script.src = "https://www.youtube.com/iframe_api";
+      script.onerror = () => { clearTimeout(timer); script.remove(); youtubeApiPromise = null; reject(new Error("YouTube API unavailable; local videos still work.")); };
+      document.head.append(script);
+    });
+    return youtubeApiPromise;
+  }
+
+  function pipBoardSupported() {
+    return Boolean(window.documentPictureInPicture?.requestWindow && window.isSecureContext);
+  }
+
+  function copyStylesToPiP(doc) {
+    for (const sheet of [...document.styleSheets]) {
+      try {
+        const rules = [...sheet.cssRules].map(rule => rule.cssText).join("\n");
+        const style = doc.createElement("style"); style.textContent = rules; doc.head.append(style);
+      } catch (_) {
+        if (sheet.href) { const link = doc.createElement("link"); link.rel="stylesheet"; link.href=sheet.href; doc.head.append(link); }
+      }
+    }
+    doc.documentElement.style.background = "#0b1020";
+    doc.body.style.margin = "0";
+    doc.body.style.background = "#0b1020";
+  }
+
+  function normalizeCardForPiP(item) {
+    item.wasFloatingBeforePiP = Boolean(item.floating);
+    item.card.classList.remove("floating","multi-float","focused");
+    item.card.style.left = item.card.style.top = item.card.style.zIndex = "";
+    item.card.style.width = item.card.style.height = item.card.style.maxHeight = "";
+    if (item.floatButton) { item.floatButton.textContent = "Float"; item.floatButton.setAttribute("aria-pressed","false"); }
+    item.floating = false;
+  }
+
+  function addItemToPiPBoard(item) {
+    if (!triPipWindow || triPipWindow.closed || !triPipGrid || item.closed) return;
+    normalizeCardForPiP(item);
+    triPipGrid.append(item.card);
+  }
+
+  function restorePiPItems() {
+    const home = $("miniVideoGrid");
+    for (const item of videoMinis.values()) {
+      if (!item.closed && item.card.ownerDocument !== document) home.append(item.card);
+    }
+    triPipWindow = null; triPipGrid = null; triPipClosing = false;
+    $("miniVideoEmpty").hidden = videoMinis.size > 0;
+  }
+
+  async function openPiPBoard() {
+    if (!videoMinis.size) { miniStatus("Add at least one video first, then open PiP Board."); return; }
+    if (!pipBoardSupported()) {
+      miniStatus("Plural PiP needs Document Picture-in-Picture in a supported HTTPS desktop browser. Using TRI Multi-Float instead.");
+      for (const item of videoMinis.values()) ensureFloating(item); arrangeFloatingMinis(); return;
+    }
+    if (triPipWindow && !triPipWindow.closed) {
+      for (const item of videoMinis.values()) addItemToPiPBoard(item);
+      triPipWindow.focus(); miniStatus("PiP Board updated with all current players."); return;
+    }
+    try {
+      const count = Math.min(Math.max(videoMinis.size,1),6);
+      const width = Math.min(screen.availWidth || 1100, count <= 2 ? 720 : 1100);
+      const height = Math.min(screen.availHeight || 760, count <= 2 ? 520 : 760);
+      triPipWindow = await window.documentPictureInPicture.requestWindow({width,height});
+      const doc = triPipWindow.document;
+      doc.title = "TRI PiP Board";
+      copyStylesToPiP(doc);
+      const top = doc.createElement("div"); top.style.cssText="position:sticky;top:0;z-index:9999;display:flex;gap:8px;align-items:center;padding:8px;background:#121a2bee;backdrop-filter:blur(8px);color:#fff;font:14px system-ui";
+      const label = doc.createElement("strong"); label.textContent="TRI PiP Board";
+      const close = doc.createElement("button"); close.textContent="Return to TRI"; close.onclick=()=>triPipWindow?.close();
+      top.append(label,close); doc.body.append(top);
+      triPipGrid = doc.createElement("main"); triPipGrid.className="pip-board-grid"; doc.body.append(triPipGrid);
+      for (const item of videoMinis.values()) addItemToPiPBoard(item);
+      triPipWindow.addEventListener("pagehide", () => { if (!triPipClosing) restorePiPItems(); }, {once:true});
+      miniStatus("PiP Board open: multiple video layers now share one always-on-top window with independent volume controls.");
+    } catch (error) { triPipWindow=null; triPipGrid=null; miniStatus("PiP Board could not open: " + error.message); }
+  }
+
+  function positionMini(item, x, y) {
+    item.x = miniClamp(x, 8, window.innerWidth - item.card.offsetWidth - 8);
+    item.y = miniClamp(y, 8, window.innerHeight - item.card.offsetHeight - 8);
+    item.card.style.left = item.x + "px"; item.card.style.top = item.y + "px";
+  }
+
+  function floatMini(item) {
+    if (item.card.ownerDocument !== document) { $("miniVideoGrid").append(item.card); }
+    item.floating = !item.floating;
+    item.card.classList.toggle("floating", item.floating);
+    item.floatButton.textContent = item.floating ? "Dock" : "Float";
+    item.floatButton.setAttribute("aria-pressed", String(item.floating));
+    if (item.floating) {
+      item.card.style.zIndex = ++videoMiniZ;
+      positionMini(item, item.x ?? window.innerWidth - 380, item.y ?? 80 + (videoMinis.size % 4) * 30);
+    } else { item.card.classList.remove("multi-float"); item.card.style.left = ""; item.card.style.top = ""; item.card.style.zIndex = ""; item.card.style.width = ""; item.card.style.height = ""; item.card.style.maxHeight = ""; }
+  }
+
+  function setMiniSize(item, delta) {
+    if (!item.floating) floatMini(item);
+    const current = item.card.getBoundingClientRect();
+    const next = miniClamp(current.width + delta, 160, Math.max(180, window.innerWidth - 16));
+    item.card.style.width = next + "px";
+    item.card.style.height = "auto";
+    positionMini(item, item.x ?? 8, item.y ?? 8);
+  }
+
+  function arrangeFloatingMinis(limit = Infinity) {
+    const items = [...videoMinis.values()].filter(item => item.floating).slice(0, limit);
+    if (!items.length) return;
+    const gap = 8, top = 64;
+    const cols = window.innerWidth < 700 ? 2 : (items.length >= 5 ? 3 : Math.min(items.length, 3));
+    const rows = Math.ceil(items.length / cols);
+    const width = Math.max(160, Math.floor((window.innerWidth - gap * (cols + 1)) / cols));
+    const availableH = Math.max(220, window.innerHeight - top - gap * (rows + 1));
+    const height = Math.max(180, Math.floor(availableH / rows));
+    items.forEach((item, i) => {
+      item.card.classList.add("multi-float");
+      item.card.style.width = width + "px";
+      item.card.style.maxHeight = height + "px";
+      positionMini(item, gap + (i % cols) * (width + gap), top + Math.floor(i / cols) * (height + gap));
+    });
+  }
+
+  function ensureFloating(item) {
+    if (!item.floating) floatMini(item);
+    item.card.classList.add("multi-float");
+  }
+
+  function autoFloatNew(item) {
+    if ($("miniAutoFloat")?.checked) {
+      ensureFloating(item);
+      arrangeFloatingMinis();
+    }
+  }
+
+  function makeVideoMini(id, title, kind) {
+    const item = {id, kind, title, ready:false, closed:false, volume:1, mix:true};
+    item.card = document.createElement("article"); item.card.className = "video-card"; item.card.dataset.miniId = id;
+    item.card.setAttribute("aria-label", title);
+    const header = document.createElement("div"); header.className = "video-card-header";
+    const handle = document.createElement("button"); handle.type = "button"; handle.className = "video-drag";
+    handle.textContent = "⠿ " + title; handle.title = "Float then drag, or use arrow keys to move";
+    item.titleHandle = handle;
+    item.floatButton = document.createElement("button"); item.floatButton.type = "button"; item.floatButton.textContent = "Float";
+    item.floatButton.setAttribute("aria-label", "Float or dock " + title); item.floatButton.setAttribute("aria-pressed", "false");
+    item.floatButton.onclick = () => floatMini(item);
+    item.smallerButton = document.createElement("button"); item.smallerButton.type = "button"; item.smallerButton.textContent = "−"; item.smallerButton.title = "Smaller"; item.smallerButton.onclick = () => setMiniSize(item,-60);
+    item.largerButton = document.createElement("button"); item.largerButton.type = "button"; item.largerButton.textContent = "+"; item.largerButton.title = "Larger"; item.largerButton.onclick = () => setMiniSize(item,60);
+    item.focusButton = document.createElement("button"); item.focusButton.type = "button"; item.focusButton.textContent = "Focus";
+    item.focusButton.setAttribute("aria-label", "Focus " + title); item.focusButton.setAttribute("aria-pressed", "false");
+    item.focusButton.onclick = () => {
+      const next = !item.card.classList.contains("focused");
+      for (const other of videoMinis.values()) { other.card.classList.remove("focused"); if(other.focusButton){ other.focusButton.textContent="Focus"; other.focusButton.setAttribute("aria-pressed","false"); } }
+      if (next) { item.card.classList.add("focused"); item.focusButton.textContent="Unfocus"; item.focusButton.setAttribute("aria-pressed","true"); item.card.scrollIntoView({behavior:"smooth",block:"nearest"}); }
+    };
+    const remove = document.createElement("button"); remove.type = "button"; remove.textContent = "×"; remove.setAttribute("aria-label", "Close " + title);
+    remove.onclick = () => removeVideoMini(item);
+    header.append(handle, item.focusButton, item.floatButton, item.smallerButton, item.largerButton, remove);
+    const body = document.createElement("div"); body.className = "video-card-body";
+    item.screen = document.createElement("div"); item.screen.className = "video-screen";
+    item.tools = document.createElement("div"); item.tools.className = "video-tools";
+    item.info = document.createElement("p"); item.info.className = "video-info"; item.info.setAttribute("role", "status");
+    body.append(item.screen, item.tools, item.info); item.card.append(header, body);
+    $("miniVideoGrid").append(item.card); videoMinis.set(id, item); $("miniVideoEmpty").hidden = true;
+    if (triPipWindow && !triPipWindow.closed && $("miniAutoPiP")?.checked) addItemToPiPBoard(item);
+    let drag;
+    handle.addEventListener("pointerdown", e => {
+      if (!item.floating || (e.pointerType === "mouse" && e.button !== 0)) return;
+      item.card.style.zIndex = ++videoMiniZ;
+      drag = {x:e.clientX,y:e.clientY,left:item.x,top:item.y}; handle.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    handle.addEventListener("pointermove", e => { if (drag) positionMini(item, drag.left + e.clientX - drag.x, drag.top + e.clientY - drag.y); });
+    for (const event of ["pointerup","pointercancel","lostpointercapture"]) handle.addEventListener(event, () => { drag = null; });
+    handle.addEventListener("keydown", e => {
+      const delta = {ArrowLeft:[-20,0],ArrowRight:[20,0],ArrowUp:[0,-20],ArrowDown:[0,20]}[e.key];
+      if (delta && item.floating) { e.preventDefault(); positionMini(item,item.x+delta[0],item.y+delta[1]); }
+    });
+    item.observer = new ResizeObserver(() => { if (item.floating) positionMini(item,item.x,item.y); }); item.observer.observe(item.card);
+    return item;
+  }
+
+  function miniButton(item, label, action) {
+    const button = document.createElement("button"); button.type = "button"; button.textContent = label;
+    button.onclick = action; item.tools.append(button); return button;
+  }
+
+  function setMiniRoute(item) {
+    if (!item.gain) return;
+    item.gain.disconnect();
+    item.gain.connect(item.mix ? state.masterGain : item.monitorGain);
+    item.info.textContent = item.noAudio ? "Video preview only: no audio track was shared. Re-share a browser tab with audio enabled." : item.kind === "tab" ? (item.mix ? "Live tab audio → TRI mix + recorder. Source tab controls playback." : "Live tab preview only; excluded from recording.") : (item.mix ? "Video audio → TRI mix + recorder" : "Preview only; excluded from recording");
+  }
+
+  function ppTimeLabel(seconds) {
+    seconds = Math.max(0, Math.floor(Number(seconds) || 0));
+    const h = Math.floor(seconds/3600), m = Math.floor((seconds%3600)/60), sec = seconds%60;
+    return (h ? h+":"+String(m).padStart(2,"0") : m) + ":" + String(sec).padStart(2,"0");
+  }
+
+  function ppCurrentTime(item) {
+    try {
+      if (item.kind === "youtube" && item.ready) return Number(item.player.getCurrentTime()) || 0;
+      if (item.media && Number.isFinite(item.media.currentTime)) return item.media.currentTime;
+    } catch (_) {}
+    return 0;
+  }
+
+  function saveVideoPointPin(item) {
+    const at = ppCurrentTime(item);
+    const note = ($("ppQuickTag")?.value || "").trim();
+    const pin = {
+      id: "pp-video-" + makeId(),
+      type: "video-pointpin",
+      createdAt: new Date().toISOString(),
+      title: (item.titleHandle?.textContent || item.title || "Video").replace(/^⠿\s*/,""),
+      sourceKind: item.kind,
+      youtubeId: item.youtubeId || null,
+      sourceUrl: item.youtubeId ? "https://www.youtube.com/watch?v=" + item.youtubeId : null,
+      sourceLocalId: item.layerName || item.id || null,
+      atSeconds: at,
+      note,
+      journeyId: currentJourney()?.id || null
+    };
+    ppVideoPins.unshift(pin);
+    localStorage.setItem(PP_VIDEO_KEY, JSON.stringify(ppVideoPins.slice(0,200)));
+    ppVideoPins = ppVideoPins.slice(0,200);
+    if ($("ppQuickTag")) $("ppQuickTag").value = "";
+    renderVideoPointPins();
+    miniStatus("PointPin saved at " + ppTimeLabel(at) + (note ? " • " + note : "") + ".");
+  }
+
+  async function openVideoPointPin(pin) {
+    if (pin.youtubeId) {
+      await addYoutubeVideo(pin.sourceUrl + "&t=" + Math.floor(pin.atSeconds || 0) + "s");
+      miniStatus("PointPin reopened at " + ppTimeLabel(pin.atSeconds) + ".");
+      return;
+    }
+    const existing = videoMinis.get(pin.sourceLocalId);
+    if (existing?.media) {
+      try { existing.media.currentTime = pin.atSeconds || 0; } catch (_) {}
+      if (!existing.floating) floatVideoMini(existing);
+      existing.card.scrollIntoView?.({behavior:"smooth",block:"center"});
+      miniStatus("PointPin reopened in the existing local player at " + ppTimeLabel(pin.atSeconds) + ".");
+      return;
+    }
+    miniStatus("This PointPin refers to a session/local video that is not loaded. Reload that video, then pin/reopen it. YouTube PointPins can reload themselves.");
+  }
+
+  function renderVideoPointPins() {
+    const shelf = $("ppVideoShelf"); if (!shelf) return;
+    shelf.replaceChildren();
+    if (!ppVideoPins.length) { const x=document.createElement("span"); x.className="small"; x.textContent="No PP Video pins yet."; shelf.append(x); return; }
+    ppVideoPins.slice(0,12).forEach(pin => {
+      const b=document.createElement("button"); b.type="button";
+      b.textContent="📍 " + ppTimeLabel(pin.atSeconds) + " · " + (pin.note || pin.title || "Video");
+      b.title="Reopen PointPin"; b.onclick=()=>openVideoPointPin(pin); shelf.append(b);
+    });
+    const clear=document.createElement("button"); clear.type="button"; clear.textContent="Clear PP shelf";
+    clear.onclick=()=>{ if(confirm("Clear saved PP Video V0 pins from this browser?")){ ppVideoPins=[]; localStorage.removeItem(PP_VIDEO_KEY); renderVideoPointPins(); } };
+    shelf.append(clear);
+  }
+
+  function miniControls(item) {
+    const isTab = item.kind === "tab", isYT = item.kind === "youtube";
+    miniButton(item, "📍 PIN NOW", () => saveVideoPointPin(item));
+    item.playButton = miniButton(item, "▶ Play", () => playVideoMini(item));
+    item.pauseButton = miniButton(item, "Ⅱ Pause", () => pauseVideoMini(item));
+    item.muteButton = miniButton(item, "Mute", () => {
+      item.muted = !item.muted;
+      if (isYT) { if (!item.ready) return; item.muted ? item.player.mute() : item.player.unMute(); }
+      else if (item.layerName) { item.media.muted = item.muted; }
+      else item.gain.gain.value = item.muted || item.paused ? 0 : item.volume;
+      item.muteButton.textContent = item.muted ? "Unmute" : "Mute"; item.muteButton.setAttribute("aria-pressed",String(Boolean(item.muted)));
+    });
+    const volumeLabel = document.createElement("label"); volumeLabel.textContent = "Volume";
+    item.volumeInput = document.createElement("input"); item.volumeInput.type = "range"; item.volumeInput.min = "0"; item.volumeInput.max = "1"; item.volumeInput.step = "0.01"; item.volumeInput.value = "1"; item.volumeInput.setAttribute("aria-label","Volume for " + item.title);
+    item.volumeInput.oninput = () => {
+      item.volume = Number(item.volumeInput.value);
+      if (isYT) { if(item.ready) item.player.setVolume(item.volume * 100); }
+      else if (item.layerName) { const primary = $("volume"+item.layerName); primary.value = String(item.volume); primary.dispatchEvent(new Event("input",{bubbles:true})); }
+      else item.gain.gain.value = item.muted || item.paused ? 0 : item.volume;
+    };
+    volumeLabel.append(item.volumeInput); item.tools.append(volumeLabel);
+    if (!isTab) {
+      const label = document.createElement("label"); label.textContent = "Loop";
+      item.loopInput = document.createElement("input"); item.loopInput.type = "checkbox"; item.loopInput.setAttribute("aria-label","Loop " + item.title);
+      item.loopInput.onchange = () => {
+        if (item.layerName) { const primary = $("loop"+item.layerName); primary.checked = item.loopInput.checked; primary.dispatchEvent(new Event("change",{bubbles:true})); }
+        else if (!isYT) item.media.loop = item.loopInput.checked;
+      }; label.prepend(item.loopInput); item.tools.append(label);
+    }
+    if (isYT) {
+      item.info.textContent = "YouTube playback only • use Share tab audio to route into TRI";
+      const link = document.createElement("a"); link.href = "https://www.youtube.com/watch?v=" + item.youtubeId; link.target = "_blank"; link.rel = "noopener noreferrer"; link.textContent = "Open source tab"; item.tools.append(link);
+    } else {
+      if (!item.layerName) {
+        const label = document.createElement("label"); label.textContent = "TRI Mix";
+        const check = document.createElement("input"); check.type = "checkbox"; check.checked = true; check.setAttribute("aria-label","Include " + item.title + " in TRI mix");
+        check.onchange = () => { item.mix = check.checked; setMiniRoute(item); }; label.prepend(check); item.tools.append(label);
+      }
+      const visual = miniButton(item, "Hide visual", () => {
+        item.card.classList.toggle("visual-off"); visual.textContent = item.card.classList.contains("visual-off") ? "Show visual" : "Hide visual";
+        visual.setAttribute("aria-pressed",String(item.card.classList.contains("visual-off")));
+      });
+      if (!isTab && typeof item.media.requestPictureInPicture === "function" && document.pictureInPictureEnabled) {
+        miniButton(item,"Picture-in-picture",() => {
+          const promise = document.pictureInPictureElement === item.media ? document.exitPictureInPicture() : item.media.requestPictureInPicture();
+          promise.catch(error => miniStatus("Picture-in-picture: " + error.message));
+        });
+      }
+    }
+    item.playButton.disabled = item.pauseButton.disabled = item.muteButton.disabled = !item.ready;
+  }
+
+  function playVideoMini(item) {
+    if (item.closed || !item.ready) return;
+    if (item.kind === "youtube") { item.player.playVideo(); return; }
+    if (item.layerName) { playLayer(item.layerName); return; }
+    resumeAudioForGesture().catch(error => miniStatus(error.message));
+    item.paused = false; item.gain.gain.value = item.muted ? 0 : item.volume;
+    item.media.play().catch(error => { item.paused = true; item.gain.gain.value = 0; miniStatus("Tap the video to allow playback: " + error.message); });
+  }
+
+  function pauseVideoMini(item) {
+    if (item.kind === "youtube") { if(item.ready) item.player.pauseVideo(); return; }
+    item.media?.pause();
+    if (!item.layerName && item.gain) { item.paused = true; item.gain.gain.value = 0; }
+  }
+
+  function playExtraVideoMinis() { for (const item of videoMinis.values()) if (!item.layerName) playVideoMini(item); }
+  function pauseAllVideoMinis() { for (const item of videoMinis.values()) pauseVideoMini(item); }
+
+  function removeVideoMini(item) {
+    if (item.closed) return;
+    item.closed = true; item.observer.disconnect();
+    if (item.kind === "youtube") item.player?.destroy();
+    else if (item.layerName) {
+      // Closing this visual keeps the established A/B/C/D audio layer alive.
+      const wasPlaying = !item.media.paused;
+      $("triHiddenMedia").append(item.media); item.media.controls = false;
+      if (wasPlaying) item.media.play().catch(error => miniStatus("Tap the layer's Play button to resume: " + error.message));
+    } else {
+      pauseVideoMini(item); item.source?.disconnect(); item.gain?.disconnect(); item.monitorGain?.disconnect();
+      item.stream?.getTracks().forEach(track => track.stop());
+      item.media.srcObject = null; item.media.removeAttribute("src"); item.media.load();
+      if(item.url) URL.revokeObjectURL(item.url);
+    }
+    item.card.remove(); videoMinis.delete(item.id); $("miniVideoEmpty").hidden = videoMinis.size > 0;
+  }
+
+  function attachMiniMix(item, source) {
+    const ctx = ensureAudioContext(); item.source = source;
+    item.gain = ctx.createGain(); item.gain.gain.value = 1; source.connect(item.gain);
+    item.monitorGain = ctx.createGain(); item.monitorGain.gain.value = Number($("masterVolume").value); item.monitorGain.connect(ctx.destination);
+    setMiniRoute(item);
+  }
+
+  async function addLocalVideoMini(file, recordingId = null, title = file.name || "Library video") {
+    if (!file?.size) { miniStatus("Choose a non-empty video file."); return; }
+    const item = makeVideoMini("video-"+(++videoMiniSerial),title,"local");
+    item.media = document.createElement("video"); item.media.controls = true; item.media.playsInline = true; item.media.preload = "metadata";
+    item.screen.append(item.media); item.info.textContent = "Loading video…";
+    item.url = URL.createObjectURL(file); item.recordingId = recordingId;
+    try {
+      ensureAudioContext();
+      await waitForMetadata(item.media,item.url);
+      if(item.closed) return;
+      attachMiniMix(item,state.audioContext.createMediaElementSource(item.media)); item.ready = true; miniControls(item); autoFloatNew(item);
+      item.media.addEventListener("play",() => { item.paused = false; item.gain.gain.value = item.muted ? 0 : item.volume; });
+      item.media.addEventListener("error",() => { item.info.textContent = "Video playback failed; try another supported format."; });
+      if (!item.media.videoWidth && !item.media.videoHeight) item.info.textContent += " • No video track detected";
+      miniStatus("Added " + title + " to video layers.");
+    } catch(error) { removeVideoMini(item); miniStatus("Video could not load: " + error.message); }
+  }
+
+  function syncLayerVideoMini(name) {
+    const layer = state.layers[name], id = "tri-layer-"+name, existing = videoMinis.get(id);
+    if (!layer.isVideo) { if(existing) removeVideoMini(existing); return; }
+    const item = existing || makeVideoMini(id,name+" · "+layer.externalName,"local");
+    if(!existing) {
+      item.layerName = name; item.media = layer.audio; item.ready = true; item.screen.append(layer.audio); layer.audio.controls = true;
+      miniControls(item);
+      item.media.addEventListener("volumechange",() => { if(item.closed) return; item.muted = item.media.muted; item.muteButton.textContent = item.muted ? "Unmute" : "Mute"; });
+    }
+    item.title = name+" · "+layer.externalName; item.titleHandle.textContent = "⠿ "+item.title;
+    item.info.textContent = "Layer " + name + " • same video/audio transport → TRI mix + recorder";
+    item.volumeInput.value = $("volume"+name).value; item.loopInput.checked = $("loop"+name).checked;
+  }
+
+  async function addYoutubeVideo(value) {
+    let parsed;
+    try { parsed = parseYoutubeLink(value); } catch(error) { miniStatus(error.message); return; }
+    const item = makeVideoMini("youtube-"+(++videoMiniSerial),"YouTube · "+parsed.id,"youtube"); item.youtubeId = parsed.id; miniControls(item);
+    item.info.textContent = "Loading YouTube…";
+    autoFloatNew(item);
+    try {
+      await loadYoutubeApi(); if(item.closed) return;
+      const originOK = /^https?:$/.test(location.protocol);
+      const origin = originOK ? location.origin : "";
+      const params = new URLSearchParams({enablejsapi:"1",playsinline:"1",autoplay:"0",start:String(parsed.start||0)});
+      if (origin) params.set("origin", origin);
+      const iframe = document.createElement("iframe");
+      iframe.width="100%"; iframe.height="220"; iframe.frameBorder="0";
+      iframe.allow="autoplay; encrypted-media; picture-in-picture";
+      iframe.allowFullscreen=true;
+      iframe.referrerPolicy="strict-origin-when-cross-origin";
+      iframe.title="YouTube video player";
+      iframe.src="https://www.youtube.com/embed/"+encodeURIComponent(parsed.id)+"?"+params.toString();
+      item.screen.append(iframe);
+      item.player = new YT.Player(iframe, {events:{onReady:() => {
+        if(item.closed) return;
+        item.ready = true; item.playButton.disabled = item.pauseButton.disabled = item.muteButton.disabled = false;
+        item.player.setVolume(item.volume*100);
+        item.info.textContent = "YouTube ready • 📍 PIN NOW captures the exact current timestamp";
+        const title = item.player.getVideoData?.().title;
+        if(title) { item.title = title; item.titleHandle.textContent = "⠿ " + title; }
+        if (triPipWindow && !triPipWindow.closed && $("miniAutoPiP")?.checked) addItemToPiPBoard(item);
+      },onStateChange:e => { if(!item.closed && e.data === 0 && item.loopInput.checked) { item.player.seekTo(parsed.start,true); item.player.playVideo(); } },
+      onAutoplayBlocked:() => { item.info.textContent = "Tap Play inside this YouTube player to allow playback."; },
+      onError:e => { const hint = e.data===153 ? "YouTube did not receive an acceptable Referer/client identity. This build sets referrer policy before the iframe request; if 153 remains, browser/PWA privacy context is suppressing it." : (e.data===101 || e.data===150 ? "This video owner blocks embedding." : "Try Open source tab."); item.info.textContent = "YouTube unavailable ("+e.data+"). " + hint; }
+      }});
+    } catch(error) { item.info.textContent = error.message; miniStatus(error.message); }
+    if (location.protocol === "file:") item.info.textContent = "YouTube can reject local-file embeds. Test PP YouTube from the deployed HTTPS PWA.";
+    return item;
+  }
+
+  async function shareVideoTab() {
+    if (!navigator.mediaDevices?.getDisplayMedia) { miniStatus("Tab sharing is unavailable here. Add a local video or YouTube link instead."); return; }
+    let stream, item;
+    try {
+      // This call must remain directly within the user gesture.
+      const request = navigator.mediaDevices.getDisplayMedia({video:true,audio:true,preferCurrentTab:false,selfBrowserSurface:"exclude",systemAudio:"exclude",surfaceSwitching:"include"});
+      resumeAudioForGesture().catch(error => miniStatus(error.message));
+      stream = await request;
+      item = makeVideoMini("tab-"+(++videoMiniSerial),"Shared tab · "+(stream.getVideoTracks()[0]?.label || "Preview"),"tab");
+      item.stream = stream; item.media = document.createElement("video"); item.media.playsInline = true; item.media.muted = true; item.media.srcObject = stream; item.screen.append(item.media);
+      if(stream.getAudioTracks().length) attachMiniMix(item,state.audioContext.createMediaStreamSource(new MediaStream(stream.getAudioTracks())));
+      else { const silent = state.audioContext.createGain(); attachMiniMix(item,silent); item.noAudio = true; }
+      item.ready = true; miniControls(item);
+      item.media.play().catch(error => miniStatus(error.message));
+      if (!stream.getAudioTracks().length) item.info.textContent = "Video preview only: no tab audio was shared. Re-share a browser tab with audio enabled to enter the TRI mix.";
+      stream.getVideoTracks()[0]?.addEventListener("ended",() => { removeVideoMini(item); miniStatus("Tab sharing ended."); },{once:true});
+      miniStatus("Shared preview added" + (stream.getAudioTracks().length ? " with audio in TRI mix." : " without audio."));
+    } catch(error) {
+      if(item) removeVideoMini(item); else stream?.getTracks().forEach(track => track.stop());
+      miniStatus(error.name === "NotAllowedError" ? "Tab sharing cancelled or blocked." : "Tab sharing failed: " + error.message);
+    }
+  }
+
+  renderVideoPointPins();
+
+  $("videoUrlForm").addEventListener("submit", e => { e.preventDefault(); addYoutubeVideo($("videoUrlInput").value.trim()); });
+  $("miniPasteYoutube").addEventListener("click", async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      $("videoUrlInput").value = text.trim();
+      miniStatus("Pasted YouTube link. Tap + YouTube to add it.");
+    } catch (_) { miniStatus("Clipboard access was blocked. Paste the YouTube Share link into the box manually."); $("videoUrlInput").focus(); }
+  });
+  $("miniVideoFiles").addEventListener("change", async e => {
+    const files = [...e.target.files]; e.target.value = "";
+    for(const file of files) await addLocalVideoMini(file);
+  });
+  $("miniShareTab").addEventListener("click",shareVideoTab);
+  const savedMiniGrid = localStorage.getItem("tri-mini-grid-cols") || "2";
+  $("miniGridLayout").value = ["auto","1","2","3","4"].includes(savedMiniGrid) ? savedMiniGrid : "2";
+  const applyMiniGrid = () => { const value = $("miniGridLayout").value; if(value === "auto") $("miniVideoGrid").removeAttribute("data-cols"); else $("miniVideoGrid").dataset.cols = value; localStorage.setItem("tri-mini-grid-cols", value); };
+  $("miniGridLayout").addEventListener("change", applyMiniGrid); applyMiniGrid();
+  if (!navigator.mediaDevices?.getDisplayMedia) { $("miniShareTab").disabled = true; $("miniShareTab").title = "Tab sharing requires a supported desktop browser"; }
+  $("miniPiPBoard").addEventListener("click",openPiPBoard);
+  if (!pipBoardSupported()) { $("miniPiPBoard").title = "Requires Document Picture-in-Picture in a supported HTTPS desktop browser"; }
+  $("miniFloatAll").addEventListener("click",() => { for(const item of videoMinis.values()) ensureFloating(item); arrangeFloatingMinis(); miniStatus("All players floated inside TRI."); });
+  $("miniFiveScreen").addEventListener("click",() => { const items=[...videoMinis.values()].slice(0,5); if(!items.length){ miniStatus("Add videos first, then tap 5-screen layout."); return; } for(const item of items) ensureFloating(item); arrangeFloatingMinis(5); miniStatus(items.length+" player"+(items.length===1?"":"s")+" arranged in 5-screen mode. Add more videos and tap again for up to five."); });
+  $("miniDockAll").addEventListener("click",() => { for(const item of videoMinis.values()) if(item.floating) floatMini(item); });
+  $("miniShowLayers").addEventListener("click",() => { for(const name of ["A","B","C","D"]) if(state.layers[name].loaded) syncLayerVideoMini(name); });
+  $("miniPauseAll").addEventListener("click",pauseAllVideoMinis);
+  $("masterVolume").addEventListener("input",() => { for(const item of videoMinis.values()) if(item.monitorGain) item.monitorGain.gain.value = Number($("masterVolume").value); });
+  for(const name of ["A","B","C","D"]) {
+    $("volume"+name).addEventListener("input",() => { const item = videoMinis.get("tri-layer-"+name); if(item) item.volumeInput.value = $("volume"+name).value; });
+    $("loop"+name).addEventListener("change",() => { const item = videoMinis.get("tri-layer-"+name); if(item) item.loopInput.checked = $("loop"+name).checked; });
+  }
+  window.addEventListener("resize",() => { for(const item of videoMinis.values()) if(item.floating) positionMini(item,item.x,item.y); });
+  window.addEventListener("pagehide",e => { if(!e.persisted) { triPipClosing=true; try{triPipWindow?.close();}catch(_){} for(const item of videoMinis.values()) item.stream?.getTracks().forEach(track => track.stop()); } });
 
 
   init();
